@@ -1,0 +1,21 @@
+FROM golang:1.5
+
+# TODO: Vendor these `go get` commands using Godep.
+RUN go get github.com/mitchellh/gox
+RUN go get github.com/aktau/github-release
+RUN go get github.com/tools/godep
+RUN go get golang.org/x/tools/cmd/cover
+RUN go get github.com/pwaller/goupx
+
+#ENV GOPATH /go/src/github.com/janeczku/go-dnsmasq:/go
+ENV USER root
+
+ADD . /go/src/github.com/janeczku/go-dnsmasq
+
+COPY scripts/upx /usr/local/bin/
+
+RUN chmod +x /usr/local/bin/upx
+
+WORKDIR /go/src/github.com/janeczku/go-dnsmasq
+
+RUN go get -d ./...

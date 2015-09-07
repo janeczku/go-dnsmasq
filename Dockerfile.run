@@ -1,0 +1,7 @@
+FROM alpine:3.2
+MAINTAINER Jan Broer <janeczku@yahoo.com>
+
+ADD go-dnsmasq go-dnsmasq
+
+EXPOSE 53 53/udp
+ENTRYPOINT ["/go-dnsmasq"]

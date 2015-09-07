@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+BUILD_IMAGE_NAME="go-dnsmasq-build"
+# GOOS=${GOOS:-"darwin linux windows"}
+# GOARCH=${GOARCH:-"386 amd64 arm"}
+GOOS=${GOOS:-"darwin linux"}
+GOARCH=${GOARCH:-"amd64"}
+
+# Build image for compilation if not detected
+if [[ $(docker images -q ${BUILD_IMAGE_NAME} | wc -l) -ne 1 ]]; then
+    docker build -t ${BUILD_IMAGE_NAME} -f Dockerfile.build .
+fi
+
+docker run --rm \
+    -v `pwd`:/go/src/github.com/janeczku/go-dnsmasq \
+    ${BUILD_IMAGE_NAME} \
+    gox \
+    -os "$GOOS" \
+    -arch "$GOARCH" \
+    -output="go-dnsmasq_{{.OS}}-{{.Arch}}" \
+    -tags="netgo" \
+    -ldflags="-w -s"
+
+# UPX compression
+echo "running UPX..."
+for BINARY in go-dnsmasq_linux*; do
+    docker run --rm -v `pwd`:/go/src/github.com/janeczku/go-dnsmasq \
+        go-dnsmasq-build goupx $BINARY
+done
+
+for BINARY in go-dnsmasq_darwin*; do
+    docker run --rm -v `pwd`:/go/src/github.com/janeczku/go-dnsmasq \
+        go-dnsmasq-build upx $BINARY
+done
