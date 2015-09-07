@@ -1,0 +1,49 @@
+#!/bin/bash
+set -e
+if [ -z "$1" ]; then
+    echo "Pass the version number as the first arg. E.g.: scripts/release 1.2.3"
+    exit 1
+fi
+VERSION=$1
+if [ -z "$GITHUB_TOKEN" ]; then
+    echo "GITHUB_TOKEN must be set for github-release"
+    exit 1
+fi
+
+git tag -f $VERSION
+git push -f --tags
+
+scripts/build
+
+# UPX compression
+for BINARY in go-dnsmasq_linux*; do
+    docker run --rm -v `pwd`:/go/src/github.com/janeczku/go-dnsmasq \
+        go-dnsmasq-build goupx $BINARY
+done
+
+for BINARY in go-dnsmasq_darwin*; do
+    docker run --rm -v `pwd`:/go/src/github.com/janeczku/go-dnsmasq \
+        go-dnsmasq-build upx $BINARY
+done
+
+docker run --rm -v `pwd`:/go/src/github.com/janeczku/go-dnsmasq go-dnsmasq-build ./scripts/generate-sums
+
+docker run --rm -e GITHUB_TOKEN go-dnsmasq-build github-release release \
+    --user janeczku \
+    --repo go-dnsmasq \
+    --tag $VERSION \
+    --name $VERSION \
+    --description "" \
+    --pre-release
+for BINARY in go-dnsmasq_*; do
+    docker run --rm -e GITHUB_TOKEN -v `pwd`:/go/src/github.com/janeczku/go-dnsmasq \
+        go-dnsmasq-build github-release upload \
+        --user janeczku \
+        --repo go-dnsmasq \
+        --tag $VERSION \
+        --name $BINARY \
+        --file $BINARY
+done
+
+# cleanup
+#rm -f go-dnsmasq_*
