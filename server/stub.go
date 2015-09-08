@@ -10,7 +10,6 @@ import (
 
 // ServeDNSStubForward forwards a request to a nameservers and returns the response.
 func (s *server) ServeDNSStubForward(w dns.ResponseWriter, req *dns.Msg, ns []string) *dns.Msg {
-	StatsStubForwardCount.Inc(1)
 
 	tcp := isTCP(w)
 

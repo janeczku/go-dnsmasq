@@ -60,8 +60,6 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 		}
 	}
 
-	StatsForwardCount.Inc(1)
-
 	tcp := isTCP(w)
 
 	var (

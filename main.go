@@ -20,7 +20,6 @@ import (
 	"github.com/janeczku/go-dnsmasq/hostsfile"
 	"github.com/janeczku/go-dnsmasq/resolvconf"
 	"github.com/janeczku/go-dnsmasq/server"
-	"github.com/janeczku/go-dnsmasq/stats"
 )
 
 // var Version string
@@ -224,8 +223,6 @@ func main() {
 		s := server.New(hf, config, Version)
 
 		defer s.Stop()
-
-		stats.Collect()
 
 		if config.DefaultResolver {
 			address, _, _ := net.SplitHostPort(config.DnsAddr)
