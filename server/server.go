@@ -6,13 +6,10 @@
 package server
 
 import (
-	"fmt"
 	"net"
 	"strings"
 	"sync"
 
-	"github.com/coreos/go-systemd/activation"
-	"github.com/janeczku/go-dnsmasq/cache"
 	"github.com/miekg/dns"
 )
 
@@ -24,7 +21,6 @@ type server struct {
 	group        *sync.WaitGroup
 	dnsUDPclient *dns.Client // used for forwarding queries
 	dnsTCPclient *dns.Client // used for forwarding queries
-	rcache       *cache.Cache
 }
 
 type Hostfile interface {
@@ -40,7 +36,6 @@ func New(hostfile Hostfile, config *Config, v string) *server {
 		version: v,
 
 		group:        new(sync.WaitGroup),
-		rcache:       cache.New(config.RCache, config.RCacheTtl),
 		dnsUDPclient: &dns.Client{Net: "udp", ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
 		dnsTCPclient: &dns.Client{Net: "tcp", ReadTimeout: 2 * config.ReadTimeout, WriteTimeout: 2 * config.ReadTimeout, SingleInflight: true},
 	}
@@ -52,63 +47,25 @@ func (s *server) Run() error {
 	mux.Handle(".", s)
 
 	dnsReadyMsg := func(addr, net string) {
-		logf("ready for queries on %s://%s [rcache %d] - nameservers: %v", net, addr, s.config.RCache, s.config.Nameservers)
+		logf("ready for queries on %s://%s - nameservers: %v", net, addr, s.config.Nameservers)
 	}
 
-	if s.config.Systemd {
-		packetConns, err := activation.PacketConns(false)
-		if err != nil {
-			return err
+	s.group.Add(1)
+	go func() {
+		defer s.group.Done()
+		if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
+			fatalf("%s", err)
 		}
-		listeners, err := activation.Listeners(true)
-		if err != nil {
-			return err
+	}()
+	dnsReadyMsg(s.config.DnsAddr, "tcp")
+	s.group.Add(1)
+	go func() {
+		defer s.group.Done()
+		if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
+			fatalf("%s", err)
 		}
-		if len(packetConns) == 0 && len(listeners) == 0 {
-			return fmt.Errorf("no UDP or TCP sockets supplied by systemd")
-		}
-		for _, p := range packetConns {
-			if u, ok := p.(*net.UDPConn); ok {
-				s.group.Add(1)
-				go func() {
-					defer s.group.Done()
-					if err := dns.ActivateAndServe(nil, u, mux); err != nil {
-						fatalf("%s", err)
-					}
-				}()
-				dnsReadyMsg(u.LocalAddr().String(), "udp")
-			}
-		}
-		for _, l := range listeners {
-			if t, ok := l.(*net.TCPListener); ok {
-				s.group.Add(1)
-				go func() {
-					defer s.group.Done()
-					if err := dns.ActivateAndServe(t, nil, mux); err != nil {
-						fatalf("%s", err)
-					}
-				}()
-				dnsReadyMsg(t.Addr().String(), "tcp")
-			}
-		}
-	} else {
-		s.group.Add(1)
-		go func() {
-			defer s.group.Done()
-			if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
-				fatalf("%s", err)
-			}
-		}()
-		dnsReadyMsg(s.config.DnsAddr, "tcp")
-		s.group.Add(1)
-		go func() {
-			defer s.group.Done()
-			if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
-				fatalf("%s", err)
-			}
-		}()
-		dnsReadyMsg(s.config.DnsAddr, "udp")
-	}
+	}()
+	dnsReadyMsg(s.config.DnsAddr, "udp")
 
 	s.group.Wait()
 	return nil
@@ -160,42 +117,9 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		bufsize = dns.MaxMsgSize - 1
 	}
 
-	StatsRequestCount.Inc(1)
-
-	if dnssec {
-		StatsDnssecOkCount.Inc(1)
-	}
-
 	if s.config.Verbose {
 		logf("received DNS Request for %q from %q with type %d", q.Name, w.RemoteAddr(), q.Qtype)
 	}
-
-	// Check cache first.
-	m1 := s.rcache.Hit(q, dnssec, tcp, m.Id)
-	if m1 != nil {
-		if tcp {
-			if _, overflow := Fit(m1, dns.MaxMsgSize, tcp); overflow {
-				msgFail := new(dns.Msg)
-				s.ServerFailure(msgFail, req)
-				w.WriteMsg(msgFail)
-				return
-			}
-		} else {
-			// Overflow with udp always results in TC.
-			Fit(m1, int(bufsize), tcp)
-		}
-		if q.Qtype == dns.TypeA || q.Qtype == dns.TypeAAAA {
-			s.RoundRobin(m1.Answer)
-		}
-
-		if err := w.WriteMsg(m1); err != nil {
-			logf("failure to return reply %q", err)
-		}
-		StatsCacheHit.Inc(1)
-		return
-	}
-
-	StatsCacheMiss.Inc(1)
 
 	defer func() {
 		if local {
@@ -216,7 +140,6 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 			} else {
 				Fit(m, int(bufsize), tcp)
 			}
-			s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), m)
 
 			if err := w.WriteMsg(m); err != nil {
 				logf("failure to return reply %q", err)
@@ -238,10 +161,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 
 	if q.Qtype == dns.TypePTR && strings.HasSuffix(name, ".in-addr.arpa.") || strings.HasSuffix(name, ".ip6.arpa.") {
 		local = false
-		resp := s.ServeDNSReverse(w, req)
-		if resp != nil {
-			s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
-		}
+		s.ServeDNSReverse(w, req)
 		return
 	}
 
@@ -289,20 +209,14 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	for zone, ns := range *s.config.Stub {
 		if strings.HasSuffix(name, zone) {
 			local = false
-			resp := s.ServeDNSStubForward(w, req, ns)
-			if resp != nil {
-				s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
-			}
+			s.ServeDNSStubForward(w, req, ns)
 			return
 		}
 	}
 
 	// Forward all other queries
 	local = false
-	resp := s.ServeDNSForward(w, req)
-	if resp != nil {
-		s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
-	}
+	s.ServeDNSForward(w, req)
 
 }
 
