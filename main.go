@@ -15,7 +15,7 @@ import (
 	"syscall"
 
 	"github.com/codegangsta/cli"
-	"github.com/miekg/dns"
+	"github.com/janeczku/go-dnsmasq/dns"
 
 	"github.com/janeczku/go-dnsmasq/hostsfile"
 	"github.com/janeczku/go-dnsmasq/resolvconf"
@@ -87,18 +87,6 @@ func main() {
 			Usage:  "enable suffixing single-label queries with search domain",
 			EnvVar: "DNSMASQ_APPEND",
 		},
-		cli.IntFlag{
-			Name:   "rcache, r",
-			Value:  0,
-			Usage:  "capacity of the response cache (‘0‘ to disable caching)",
-			EnvVar: "DNSMASQ_RCACHE",
-		},
-		cli.IntFlag{
-			Name:   "rcache-ttl",
-			Value:  server.RCacheTtl,
-			Usage:  "TTL of entries in the response cache",
-			EnvVar: "DNSMASQ_RCACHE_TTL",
-		},
 		cli.BoolFlag{
 			Name:   "no-rec",
 			Usage:  "disable recursion",
@@ -168,8 +156,6 @@ func main() {
 			RoundRobin:      c.Bool("round-robin"),
 			NoRec:           c.Bool("no-rec"),
 			ReadTimeout:     0,
-			RCache:          c.Int("rcache"),
-			RCacheTtl:       c.Int("rcache-ttl"),
 			Verbose:         c.Bool("verbose"),
 		}
 

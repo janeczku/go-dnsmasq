@@ -14,7 +14,7 @@ package server
 	"testing"
 	"time"
 
-	"github.com/miekg/dns"
+	"github.com/janeczku/go-dnsmasq/dns"
 	"github.com/janeczku/go-dnsmasq/cache"
 )
 

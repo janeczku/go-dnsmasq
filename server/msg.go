@@ -4,7 +4,7 @@
 
 package server
 
-import "github.com/miekg/dns"
+import "github.com/janeczku/go-dnsmasq/dns"
 
 // Fit will make m fit the size. If a message is larger than size then entire
 // additional section is dropped. If it is still to large and the transport

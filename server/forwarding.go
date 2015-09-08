@@ -8,7 +8,7 @@ package server
 import (
 	"strings"
 
-	"github.com/miekg/dns"
+	"github.com/janeczku/go-dnsmasq/dns"
 )
 
 // ServeDNSForward forwards a request to a nameservers and returns the response.

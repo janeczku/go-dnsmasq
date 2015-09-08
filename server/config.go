@@ -11,12 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/miekg/dns"
-)
-
-const (
-	RCacheCapacity = 100000
-	RCacheTtl      = 60
+	"github.com/janeczku/go-dnsmasq/dns"
 )
 
 // Config provides options to the go-dnsmasq resolver
@@ -47,10 +42,6 @@ type Config struct {
 	Ttl uint32 `json:"ttl,omitempty"`
 	// Default TTL for Hostfile records, in seconds. Defaults to 30.
 	HostsTtl uint32 `json:"hostfile_ttl,omitempty"`
-	// RCache, capacity of response cache in resource records stored.
-	RCache int `json:"rcache,omitempty"`
-	// RCacheTtl, how long to cache in seconds.
-	RCacheTtl int `json:"rcache_ttl,omitempty"`
 	// How many labels a name should have before we allow forwarding. Default to 2.
 	Ndots int `json:"ndot,omitempty"`
 
@@ -72,12 +63,6 @@ func SetDefaults(config *Config) error {
 	}
 	if config.HostsTtl == 0 {
 		config.HostsTtl = 10
-	}
-	if config.RCache < 0 {
-		config.RCache = 0
-	}
-	if config.RCacheTtl == 0 {
-		config.RCacheTtl = RCacheTtl
 	}
 	if config.Ndots <= 0 {
 		config.Ndots = 2

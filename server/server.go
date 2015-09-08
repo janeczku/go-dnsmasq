@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/miekg/dns"
+	"github.com/janeczku/go-dnsmasq/dns"
 )
 
 type server struct {
@@ -86,7 +86,6 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	m.RecursionAvailable = true
 	m.Compress = true
 	bufsize := uint16(512)
-	dnssec := false
 	tcp := false
 	local := true
 
@@ -107,7 +106,6 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 
 	if o := req.IsEdns0(); o != nil {
 		bufsize = o.UDPSize()
-		dnssec = o.Do()
 	}
 	if bufsize < 512 {
 		bufsize = 512

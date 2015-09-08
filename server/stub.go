@@ -5,7 +5,7 @@
 package server
 
 import (
-	"github.com/miekg/dns"
+	"github.com/janeczku/go-dnsmasq/dns"
 )
 
 // ServeDNSStubForward forwards a request to a nameservers and returns the response.

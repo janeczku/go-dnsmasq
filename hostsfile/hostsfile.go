@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/miekg/dns"
+	"github.com/janeczku/go-dnsmasq/dns"
 )
 
 // Config stores options for hostsfile
