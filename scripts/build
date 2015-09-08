@@ -24,4 +24,6 @@ docker run --rm \
     -os "$GOOS" \
     -arch "$GOARCH" \
     -output="go-dnsmasq_{{.OS}}-{{.Arch}}" \
-    -ldflags="-w -s"
+    -ldflags="-w -s" \
+    -tags="netgo" \
+    -rebuild
