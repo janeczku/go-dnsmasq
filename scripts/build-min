@@ -12,9 +12,9 @@ if [[ $(docker images -q ${BUILD_IMAGE_NAME} | wc -l) -ne 1 ]]; then
     docker build -t ${BUILD_IMAGE_NAME} -f Dockerfile.build .
 fi
 
-echo "building full version"
+echo "building minmal version"
 
-git checkout master
+git checkout minimal
 sleep 2
 
 docker run --rm \
@@ -23,5 +23,7 @@ docker run --rm \
     gox \
     -os "$GOOS" \
     -arch "$GOARCH" \
-    -output="go-dnsmasq_{{.OS}}-{{.Arch}}" \
+    -output="go-dnsmasq-min_{{.OS}}-{{.Arch}}" \
     -ldflags="-w -s"
+
+git checkout master
