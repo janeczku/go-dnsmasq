@@ -100,9 +100,7 @@ func parseLine(line string) hostlist {
 	var isIPv6 bool
 
 	switch {
-	case ip.IsLoopback():
-		return hostnames
-	case ip.IsUnspecified():
+	case ip.IsGlobalUnicast():
 		return hostnames
 	case ip.To4() != nil:
 		isIPv6 = false
