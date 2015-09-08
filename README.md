@@ -1,5 +1,5 @@
 # go-dnsmasq
-*Version 0.9.0*
+*Version 0.9.2*
 
 go-dnsmasq is a lightweight (1.4 MB) caching DNS forwarder/proxy optimized for running in Docker containers.
 
@@ -55,6 +55,7 @@ See above (the names inside the brackets).
 #### Run from the commandline
 
 Download the binary for your OS from the [releases page](https://github.com/janeczku/go-dnsmasq/releases/latest).
+go-dnsmasq is available in two versions. The minimal binary (go-dnsmasq-min) has a lower memory footprint but doesn't include caching, stats reporting and systemd support.
 
 	sudo ./go-dnsmasq [options]
 
