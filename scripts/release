@@ -23,6 +23,7 @@ git push -f --tags
 git checkout master
 
 scripts/build
+scripts/build-min
 
 # UPX compression
 echo "Packing binaries with UPX..."
