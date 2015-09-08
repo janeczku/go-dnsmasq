@@ -10,8 +10,17 @@ if [ -z "$GITHUB_TOKEN" ]; then
     exit 1
 fi
 
+git checkout master
+
 git tag -f $VERSION
 git push -f --tags
+
+git checkout minimal
+
+git tag -f $VERSION
+git push -f --tags
+
+git checkout master
 
 scripts/build
 
