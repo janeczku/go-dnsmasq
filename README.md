@@ -58,7 +58,9 @@ Download the binary for your OS from the [releases page](https://github.com/jane
 
 go-dnsmasq is available in two versions. The minimal binary (`go-dnsmasq-min`) has a lower memory footprint but doesn't include caching, stats reporting and systemd support.
 
+```sh
    sudo ./go-dnsmasq [options]
+```
 
 #### Run as a Docker container
 
