@@ -54,12 +54,13 @@ See above (the names inside the brackets).
 
 #### Run from the commandline
 
-Download the binary for your OS from the [releases page](https://github.com/janeczku/go-dnsmasq/releases/latest).
-go-dnsmasq is available in two versions. The minimal binary (go-dnsmasq-min) has a lower memory footprint but doesn't include caching, stats reporting and systemd support.
+Download the binary for your OS from the [releases page](https://github.com/janeczku/go-dnsmasq/releases/latest).    
 
-	sudo ./go-dnsmasq [options]
+go-dnsmasq is available in two versions. The minimal binary (`go-dnsmasq-min`) has a lower memory footprint but doesn't include caching, stats reporting and systemd support.
 
-#### Run inside an Alpine Linux Docker container
+   sudo ./go-dnsmasq [options]
+
+#### Run as a Docker container
 
 ```sh
 docker run -d -e DNSMASQ_LISTEN=0.0.0.0 -p 53:53/udp -p 53:53 \
