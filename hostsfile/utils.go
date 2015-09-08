@@ -102,6 +102,8 @@ func parseLine(line string) hostlist {
 	switch {
 	case !ip.IsGlobalUnicast():
 		return hostnames
+	case ip.Equal(net.ParseIP("fe00::")):
+		return hostnames
 	case ip.To4() != nil:
 		isIPv6 = false
 	case ip.To16() != nil:
