@@ -1,7 +1,8 @@
 FROM alpine:3.2
 MAINTAINER Jan Broer <janeczku@yahoo.com>
 
-ADD go-dnsmasq go-dnsmasq
+ADD https://github.com/janeczku/go-dnsmasq/releases/download/0.9.2/go-dnsmasq_linux-amd64 /go-dnsmasq
+RUN chmod +x /go-dnsmasq
 
 EXPOSE 53 53/udp
 ENTRYPOINT ["/go-dnsmasq"]
