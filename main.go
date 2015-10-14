@@ -81,12 +81,12 @@ func main() {
 		cli.StringFlag{
 			Name:   "search-domains, s",
 			Value:  "",
-			Usage:  "Specify SEARCH domains taking precedence over /etc/resolv.conf: ‘fqdn[,fqdn]‘",
+			Usage:  "specify SEARCH domains taking precedence over /etc/resolv.conf: ‘fqdn[,fqdn]‘",
 			EnvVar: "DNSMASQ_SEARCH",
 		},
 		cli.BoolFlag{
 			Name:   "append-search-domains, a",
-			Usage:  "enable suffixing single-label queries with SEARCH domain",
+			Usage:  "enable suffixing single-label queries with SEARCH domains",
 			EnvVar: "DNSMASQ_APPEND",
 		},
 		cli.IntFlag{
