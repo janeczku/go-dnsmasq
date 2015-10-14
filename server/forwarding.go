@@ -36,16 +36,12 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	name := req.Question[0].Name
 	searchFix := false
 	searchCname := new(dns.CNAME)
+	var nameFqdn string
 
 	if dns.CountLabel(name) < 2 || dns.CountLabel(name) < s.config.Ndots {
-		if dns.CountLabel(name) < 2 && s.config.SearchDomain != "" {
+		// append search domain to single-label queries
+		if dns.CountLabel(name) < 2 && len(s.config.SearchDomains) > 0 {
 			searchFix = true
-			// append search domain to single-label query name
-			nameFqdn := strings.ToLower(appendDomain(name, s.config.SearchDomain))
-			searchCname.Hdr = dns.RR_Header{Name: name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: 360}
-			searchCname.Target = nameFqdn
-			// req.Question[0].Name = target
-			req.Question[0] = dns.Question{nameFqdn, req.Question[0].Qtype, req.Question[0].Qclass}
 		} else {
 			if s.config.Verbose {
 				logf("can not forward, name too short: `%s'", name)
@@ -68,9 +64,20 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 		r   *dns.Msg
 		err error
 		try int
+		sindex int
 	)
+
+RedoSearch:
+	if searchFix {
+		nameFqdn = strings.ToLower(appendDomain(name, s.config.SearchDomains[sindex]))
+		searchCname.Hdr = dns.RR_Header{Name: name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: 360}
+		searchCname.Target = nameFqdn
+		req.Question[0] = dns.Question{nameFqdn, req.Question[0].Qtype, req.Question[0].Qclass}
+	}
+
 	// Use request Id for "random" nameserver selection.
 	nsid := int(req.Id) % len(s.config.Nameservers)
+	try = 0
 Redo:
 	switch tcp {
 	case false:
@@ -80,7 +87,21 @@ Redo:
 	}
 	if err == nil {
 		if searchFix {
-			// Insert CName resolving hostname to hostname.searchdomain
+			// If rcode is NXDOMAIN
+			if r.Rcode == dns.RcodeNameError {
+				// first try the other nameservers
+				if try < len(s.config.Nameservers) {
+					try++
+					nsid = (nsid + 1) % len(s.config.Nameservers)
+					goto Redo
+				// otherwise switch to another SEARCH domain
+				} else if (sindex + 1) < len(s.config.SearchDomains) {
+					sindex++
+					goto RedoSearch
+				}
+			}
+
+			// Insert CName resolving the queried hostname to hostname.searchdomain
 			if len(r.Answer) > 0 {
 				answers := []dns.RR{searchCname}
 				for _, rr := range r.Answer {
