@@ -26,10 +26,11 @@ import (
 const Version = "0.9.2"
 
 var (
-	nameservers = []string{}
-	stubzones   = ""
-	hostPort    = ""
-	listen      = ""
+	nameservers   = []string{}
+	searchDomains = []string{}
+	stubzones     = ""
+	hostPort      = ""
+	listen        = ""
 )
 
 var exitErr error
@@ -61,7 +62,7 @@ func main() {
 		cli.StringFlag{
 			Name:   "stubzones, z",
 			Value:  "",
-			Usage:  "domains to resolve using a specific nameserver: ‘domain[,domain]/host[:port]‘",
+			Usage:  "domains to resolve using a specific nameserver: ‘fqdn[,fqdn]/host[:port]‘",
 			EnvVar: "DNSMASQ_STUB",
 		},
 		cli.StringFlag{
@@ -77,14 +78,14 @@ func main() {
 			EnvVar: "DNSMASQ_POLL",
 		},
 		cli.StringFlag{
-			Name:   "search-domain, s",
+			Name:   "search-domains, s",
 			Value:  "",
-			Usage:  "specify search domain (takes precedence over /etc/resolv.conf)",
+			Usage:  "Specify SEARCH domains taking precedence over /etc/resolv.conf: ‘fqdn[,fqdn]‘",
 			EnvVar: "DNSMASQ_SEARCH",
 		},
 		cli.BoolFlag{
-			Name:   "append-domain, a",
-			Usage:  "enable suffixing single-label queries with search domain",
+			Name:   "append-search-domains, a",
+			Usage:  "enable suffixing single-label queries with SEARCH domain",
 			EnvVar: "DNSMASQ_APPEND",
 		},
 		cli.BoolFlag{
@@ -132,6 +133,17 @@ func main() {
 			}
 		}
 
+		if sd := c.String("search-domains"); sd != "" {
+			for _, domain := range strings.Split(sd, ",") {
+
+				if dns.CountLabel(domain) < 2 {
+					log.Fatalf("go-dnsmasq: SEARCH domain is not a FQDN: %s", domain)
+				}
+				domain = dns.Fqdn(strings.ToLower(domain))
+				searchDomains = append(searchDomains, domain)
+			}
+		}
+
 		if listen = c.String("listen"); !strings.Contains(listen, ":") {
 			listen += ":53"
 		}
@@ -140,17 +152,13 @@ func main() {
 			log.Fatalf("go-dnsmasq: listen address is invalid: %s", err)
 		}
 
-		if c.String("search-domain") != "" && dns.CountLabel(c.String("search-domain")) < 2 {
-			log.Fatalf("go-dnsmasq: search-domain must be a FQDN e.g. ‘example.com‘")
-		}
-
 		config := &server.Config{
 			DnsAddr:         listen,
 			DefaultResolver: c.Bool("default-resolver"),
 			Nameservers:     nameservers,
 			Systemd:         c.Bool("systemd"),
-			SearchDomain:    c.String("search-domain"),
-			AppendDomain:    c.Bool("append-domain"),
+			SearchDomains:   searchDomains,
+			AppendDomain:    c.Bool("append-search-domains"),
 			Hostsfile:       c.String("hostsfile"),
 			PollInterval:    c.Int("hostsfile-poll"),
 			RoundRobin:      c.Bool("round-robin"),
@@ -161,9 +169,9 @@ func main() {
 
 		if err := server.SetDefaults(config); err != nil {
 			if !config.NoRec && len(config.Nameservers) == 0 {
-				log.Fatalf("go-dnsmasq: error parsing name servers and --nameservers flag not supplied: %s", err)
-			} else if config.AppendDomain && config.SearchDomain == "" {
-				log.Fatalf("go-dnsmasq: error parsing SEARCH domain and --search-domain flag not supplied: %s", err)
+				log.Fatalf("go-dnsmasq: found no nameservers in resolv.conf and --nameservers flag not supplied: %s", err)
+			} else if config.AppendDomain && len(config.SearchDomains) == 0 {
+				log.Fatalf("go-dnsmasq: found no SEARCH domains in resolv.conf and --search-domains flag not supplied: %s", err)
 			} else {
 				log.Printf("go-dnsmasq: error parsing resolv.conf: %s", err)
 			}

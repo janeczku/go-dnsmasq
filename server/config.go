@@ -24,7 +24,7 @@ type Config struct {
 	DefaultResolver bool `json:"default_resolver,omitempty"`
 	// Domain to append to query names that are not FQDN
 	// Replicates the SEARCH keyword in /etc/resolv.conf
-	SearchDomain string `json:"search_domain,omitempty"`
+	SearchDomains []string `json:"search_domains,omitempty"`
 	// Replicates the SEARCH keyword in /etc/resolv.conf
 	AppendDomain bool `json:"append_domain,omitempty"`
 	// Path to the hostfile
@@ -81,22 +81,19 @@ func SetDefaults(config *Config) error {
 	}
 
 	// For now we only get the first SEARCH domain found
-	if config.AppendDomain && config.SearchDomain == "" {
+	if config.AppendDomain && len(config.SearchDomains) == 0 {
 		c, err := dns.ClientConfigFromFile("/etc/resolv.conf")
 		if !os.IsNotExist(err) {
 			if err != nil {
 				return err
 			}
 			for _, s := range c.Search {
-				config.SearchDomain = s
-				break
+				s = dns.Fqdn(strings.ToLower(s))
+				config.SearchDomains = append(config.SearchDomains, s)
 			}
 		}
 	}
 
-	if config.SearchDomain != "" {
-		config.SearchDomain = dns.Fqdn(strings.ToLower(config.SearchDomain))
-	}
 	stubmap := make(map[string][]string)
 	config.Stub = &stubmap
 	return nil
