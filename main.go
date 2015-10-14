@@ -205,6 +205,9 @@ func main() {
 		}
 
 		log.Printf("starting go-dnsmasq %s ...", Version)
+		if config.AppendDomain {
+			logf("configured search domains: %v", config.SearchDomains)
+		}
 
 		hf, err := hosts.NewHostsfile(config.Hostsfile, &hosts.Config{
 			Poll:    config.PollInterval,
