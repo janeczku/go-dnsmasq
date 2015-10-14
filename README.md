@@ -1,5 +1,5 @@
 # go-dnsmasq
-*Version 0.9.2*
+*Version 0.9.3*
 
 go-dnsmasq is a lightweight (1.4 MB) caching DNS forwarder/proxy optimized for running in Docker containers.
 
@@ -34,8 +34,8 @@ GLOBAL OPTIONS:
    --stubzones, -z 		domains to resolve using a specific nameserver: ‘domain[,domain]/host[:port]‘ [$DNSMASQ_STUB]
    --hostsfile, -f 		full path to hostsfile (e.g. ‘/etc/hosts‘) [$DNSMASQ_HOSTSFILE]
    --hostsfile-poll, -p "0"	how frequently to poll hostsfile (in seconds, ‘0‘ to disable) [$DNSMASQ_POLL]
-   --search-domain, -s 		specify search domain (takes precedence over /etc/resolv.conf) [$DNSMASQ_SEARCH]
-   --append-domain, -a		enable suffixing single-label queries with search domain [$DNSMASQ_APPEND]
+   --search-domains, -s 		specify SEARCH domains taking precedence over /etc/resolv.conf: ‘fqdn[,fqdn]‘ [$DNSMASQ_SEARCH]
+   --append-search-domains, -a		enable suffixing single-label queries with SEARCH domains [$DNSMASQ_APPEND]
    --rcache, -r "0"		capacity of the response cache (‘0‘ to disable caching) [$DNSMASQ_RCACHE]
    --rcache-ttl "60"		TTL of entries in the response cache [$DNSMASQ_RCACHE_TTL]
    --no-rec			disable recursion [$DNSMASQ_NOREC]
