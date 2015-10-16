@@ -6,6 +6,7 @@ package main // import "github.com/janeczku/go-dnsmasq"
 
 import (
 	"fmt"
+	"log/syslog"
 	"net"
 	"os"
 	"os/signal"
@@ -14,6 +15,7 @@ import (
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
+	logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
 	"github.com/codegangsta/cli"
 	"github.com/janeczku/go-dnsmasq/dns"
 
@@ -113,6 +115,11 @@ func main() {
 			Usage:  "enable verbose logging",
 			EnvVar: "DNSMASQ_VERBOSE",
 		},
+		cli.BoolFlag{
+			Name:   "syslog",
+			Usage:  "enable syslog logging",
+			EnvVar: "DNSMASQ_SYSLOG",
+		},
 	}
 	app.Action = func(c *cli.Context) {
 		exitReason := make(chan error)
@@ -126,6 +133,15 @@ func main() {
 
 		if c.Bool("verbose") {
 			log.SetLevel(log.DebugLevel)
+		}
+
+		if c.Bool("syslog") {
+			hook, err := logrus_syslog.NewSyslogHook("", "", syslog.LOG_LOCAL0|syslog.LOG_INFO, "go-dnsmasq")
+			if err != nil {
+				log.Error("Unable to connect to local syslog daemon")
+			} else {
+				log.AddHook(hook)
+			}
 		}
 
 		if ns := c.String("nameservers"); ns != "" {
