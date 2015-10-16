@@ -23,7 +23,7 @@ import (
 )
 
 // var Version string
-const Version = "0.9.3"
+const Version = "0.9.4"
 
 var (
 	nameservers   = []string{}
@@ -55,7 +55,7 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:   "default-resolver, d",
-			Usage:  "make go-dnsmasq the default name server (updates /etc/resolv.conf)",
+			Usage:  "make go-dnsmasq the local primary nameserver (updates /etc/resolv.conf)",
 			EnvVar: "DNSMASQ_DEFAULT",
 		},
 		cli.StringFlag{
