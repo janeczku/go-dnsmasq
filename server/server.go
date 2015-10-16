@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/go-systemd/activation"
 	"github.com/janeczku/go-dnsmasq/cache"
 	"github.com/miekg/dns"
@@ -52,7 +53,7 @@ func (s *server) Run() error {
 	mux.Handle(".", s)
 
 	dnsReadyMsg := func(addr, net string) {
-		logf("ready for queries on %s://%s [rcache %d] - nameservers: %v", net, addr, s.config.RCache, s.config.Nameservers)
+		log.Infof("Ready for queries on %s://%s [rcache %d] Nameservers: %v", net, addr, s.config.RCache, s.config.Nameservers)
 	}
 
 	if s.config.Systemd {
@@ -65,7 +66,7 @@ func (s *server) Run() error {
 			return err
 		}
 		if len(packetConns) == 0 && len(listeners) == 0 {
-			return fmt.Errorf("no UDP or TCP sockets supplied by systemd")
+			return fmt.Errorf("No UDP or TCP sockets supplied by systemd")
 		}
 		for _, p := range packetConns {
 			if u, ok := p.(*net.UDPConn); ok {
@@ -73,7 +74,7 @@ func (s *server) Run() error {
 				go func() {
 					defer s.group.Done()
 					if err := dns.ActivateAndServe(nil, u, mux); err != nil {
-						fatalf("%s", err)
+						log.Fatalf("%s", err)
 					}
 				}()
 				dnsReadyMsg(u.LocalAddr().String(), "udp")
@@ -85,7 +86,7 @@ func (s *server) Run() error {
 				go func() {
 					defer s.group.Done()
 					if err := dns.ActivateAndServe(t, nil, mux); err != nil {
-						fatalf("%s", err)
+						log.Fatalf("%s", err)
 					}
 				}()
 				dnsReadyMsg(t.Addr().String(), "tcp")
@@ -96,7 +97,7 @@ func (s *server) Run() error {
 		go func() {
 			defer s.group.Done()
 			if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
-				fatalf("%s", err)
+				log.Fatalf("%s", err)
 			}
 		}()
 		dnsReadyMsg(s.config.DnsAddr, "tcp")
@@ -104,7 +105,7 @@ func (s *server) Run() error {
 		go func() {
 			defer s.group.Done()
 			if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
-				fatalf("%s", err)
+				log.Fatalf("%s", err)
 			}
 		}()
 		dnsReadyMsg(s.config.DnsAddr, "udp")
@@ -166,9 +167,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		StatsDnssecOkCount.Inc(1)
 	}
 
-	if s.config.Verbose {
-		logf("received DNS Request for %q from %q with type %d", q.Name, w.RemoteAddr(), q.Qtype)
-	}
+	log.Debugf("Received DNS query for %q from %q with type %d", q.Name, w.RemoteAddr(), q.Qtype)
 
 	// Check cache first.
 	m1 := s.rcache.Hit(q, dnssec, tcp, m.Id)
@@ -189,7 +188,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		}
 
 		if err := w.WriteMsg(m1); err != nil {
-			logf("failure to return reply %q", err)
+			log.Errorf("Failed to return reply %q", err)
 		}
 		StatsCacheHit.Inc(1)
 		return
@@ -201,7 +200,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		if local {
 			if m.Rcode == dns.RcodeServerFailure {
 				if err := w.WriteMsg(m); err != nil {
-					logf("failure to return reply %q", err)
+					log.Errorf("Failed to return reply %q", err)
 				}
 				return
 			}
@@ -219,7 +218,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 			s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), m)
 
 			if err := w.WriteMsg(m); err != nil {
-				logf("failure to return reply %q", err)
+				log.Errorf("Failed to return reply %q", err)
 			}
 		}
 	}()
@@ -228,7 +227,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	if q.Qtype == dns.TypeA || q.Qtype == dns.TypeAAAA || q.Qtype == dns.TypeANY {
 		records, err := s.AddressRecords(q, name)
 		if err != nil {
-			logf("error from backend: %s", err)
+			log.Errorf("Error querying hostsfile records: %s", err)
 		}
 		if len(records) > 0 {
 			m.Answer = append(m.Answer, records...)
