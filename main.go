@@ -39,7 +39,6 @@ var (
 var exitErr error
 
 func init() {
-	log.SetFormatter(&log.TextFormatter{DisableTimestamp: true})
 	log.SetOutput(os.Stderr)
 }
 
@@ -149,12 +148,15 @@ func main() {
 		}
 
 		if c.Bool("syslog") {
-			hook, err := logrus_syslog.NewSyslogHook("", "", syslog.LOG_LOCAL0|syslog.LOG_INFO, "go-dnsmasq")
+			log.SetFormatter(&log.TextFormatter{DisableTimestamp: true, DisableColors: true})
+			hook, err := logrus_syslog.NewSyslogHook("", "", syslog.LOG_DAEMON|syslog.LOG_INFO, "go-dnsmasq")
 			if err != nil {
 				log.Error("Unable to connect to local syslog daemon")
 			} else {
 				log.AddHook(hook)
 			}
+		} else {
+			log.SetFormatter(&log.TextFormatter{DisableTimestamp: true})
 		}
 
 		if ns := c.String("nameservers"); ns != "" {
