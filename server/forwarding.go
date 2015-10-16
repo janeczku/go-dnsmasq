@@ -8,6 +8,7 @@ package server
 import (
 	"strings"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/janeczku/go-dnsmasq/dns"
 )
 
@@ -20,9 +21,7 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 		m.Authoritative = false
 		m.RecursionAvailable = false
 		if len(s.config.Nameservers) == 0 {
-			if s.config.Verbose {
-				logf("can not forward, no nameservers defined")
-			}
+			log.Debug("Can not forward query, no nameservers defined")
 			m.RecursionAvailable = true
 		} else {
 			m.RecursionAvailable = false
@@ -43,9 +42,7 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 		if dns.CountLabel(name) < 2 && len(s.config.SearchDomains) > 0 {
 			searchFix = true
 		} else {
-			if s.config.Verbose {
-				logf("can not forward, name too short: `%s'", name)
-			}
+			log.Debugf("Can not forward query, name too short: `%s'", name)
 			m := new(dns.Msg)
 			m.SetReply(req)
 			m.SetRcode(req, dns.RcodeServerFailure)
@@ -59,9 +56,9 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	tcp := isTCP(w)
 
 	var (
-		r   *dns.Msg
-		err error
-		try int
+		r      *dns.Msg
+		err    error
+		try    int
 		sindex int
 	)
 
@@ -85,15 +82,15 @@ Redo:
 	}
 	if err == nil {
 		if searchFix {
-			// If rcode is NXDOMAIN
+			// If rcode is NXDOMAIN repeat query
 			if r.Rcode == dns.RcodeNameError {
-				// first try the other nameservers
 				if try < len(s.config.Nameservers) {
+					// repeat using other available nameservers
 					try++
 					nsid = (nsid + 1) % len(s.config.Nameservers)
 					goto Redo
-				// otherwise switch to another SEARCH domain
 				} else if (sindex + 1) < len(s.config.SearchDomains) {
+					// repeat using other available search domains
 					sindex++
 					goto RedoSearch
 				}
@@ -123,7 +120,7 @@ Redo:
 		goto Redo
 	}
 
-	logf("failure to forward request %q", err)
+	log.Errorf("Failure forwarding request %q", err)
 	m := new(dns.Msg)
 	m.SetReply(reqOrig)
 	m.SetRcode(reqOrig, dns.RcodeServerFailure)
@@ -142,7 +139,7 @@ func (s *server) ServeDNSReverse(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	if records, err := s.PTRRecords(req.Question[0]); err == nil && len(records) > 0 {
 		m.Answer = records
 		if err := w.WriteMsg(m); err != nil {
-			logf("failure to return reply %q", err)
+			log.Errorf("Failure returning reply %q", err)
 		}
 		return m
 	}

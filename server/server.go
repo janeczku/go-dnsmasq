@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/janeczku/go-dnsmasq/dns"
 )
 
@@ -47,14 +48,14 @@ func (s *server) Run() error {
 	mux.Handle(".", s)
 
 	dnsReadyMsg := func(addr, net string) {
-		logf("ready for queries on %s://%s - nameservers: %v", net, addr, s.config.Nameservers)
+		log.Infof("Ready for queries on %s://%s - Nameservers: %v", net, addr, s.config.Nameservers)
 	}
 
 	s.group.Add(1)
 	go func() {
 		defer s.group.Done()
 		if err := dns.ListenAndServe(s.config.DnsAddr, "tcp", mux); err != nil {
-			fatalf("%s", err)
+			log.Fatalf("%s", err)
 		}
 	}()
 	dnsReadyMsg(s.config.DnsAddr, "tcp")
@@ -62,7 +63,7 @@ func (s *server) Run() error {
 	go func() {
 		defer s.group.Done()
 		if err := dns.ListenAndServe(s.config.DnsAddr, "udp", mux); err != nil {
-			fatalf("%s", err)
+			log.Fatalf("%s", err)
 		}
 	}()
 	dnsReadyMsg(s.config.DnsAddr, "udp")
@@ -115,15 +116,13 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		bufsize = dns.MaxMsgSize - 1
 	}
 
-	if s.config.Verbose {
-		logf("received DNS Request for %q from %q with type %d", q.Name, w.RemoteAddr(), q.Qtype)
-	}
+	log.Debugf("Received DNS query for %q from %q with type %d", q.Name, w.RemoteAddr(), q.Qtype)
 
 	defer func() {
 		if local {
 			if m.Rcode == dns.RcodeServerFailure {
 				if err := w.WriteMsg(m); err != nil {
-					logf("failure to return reply %q", err)
+					log.Errorf("Failed to return reply %q", err)
 				}
 				return
 			}
@@ -140,7 +139,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 			}
 
 			if err := w.WriteMsg(m); err != nil {
-				logf("failure to return reply %q", err)
+				log.Errorf("Failed to return reply %q", err)
 			}
 		}
 	}()
@@ -149,7 +148,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	if q.Qtype == dns.TypeA || q.Qtype == dns.TypeAAAA || q.Qtype == dns.TypeANY {
 		records, err := s.AddressRecords(q, name)
 		if err != nil {
-			logf("error from backend: %s", err)
+			log.Errorf("Error querying hostsfile records: %s", err)
 		}
 		if len(records) > 0 {
 			m.Answer = append(m.Answer, records...)

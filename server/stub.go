@@ -5,6 +5,7 @@
 package server
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"github.com/janeczku/go-dnsmasq/dns"
 )
 
@@ -42,7 +43,7 @@ Redo:
 		goto Redo
 	}
 
-	logf("failure to forward stub request %q", err)
+	log.Errorf("Failure forwarding stub request %q", err)
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.SetRcode(req, dns.RcodeServerFailure)

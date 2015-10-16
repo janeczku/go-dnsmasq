@@ -6,7 +6,6 @@ package main // import "github.com/janeczku/go-dnsmasq"
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -14,6 +13,7 @@ import (
 	"strings"
 	"syscall"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/janeczku/go-dnsmasq/dns"
 
@@ -34,6 +34,11 @@ var (
 )
 
 var exitErr error
+
+func init() {
+	log.SetFormatter(&log.TextFormatter{DisableTimestamp: true})
+	log.SetOutput(os.Stderr)
+}
 
 func main() {
 	app := cli.NewApp()
@@ -115,9 +120,13 @@ func main() {
 			c := make(chan os.Signal, 1)
 			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 			sig := <-c
-			log.Println("go-dnsmasq: exit requested by signal:", sig)
+			log.Infoln("Application exit requested by signal:", sig)
 			exitReason <- nil
 		}()
+
+		if c.Bool("verbose") {
+			log.SetLevel(log.DebugLevel)
+		}
 
 		if ns := c.String("nameservers"); ns != "" {
 			for _, hostPort := range strings.Split(ns, ",") {
@@ -126,7 +135,7 @@ func main() {
 				}
 
 				if err := validateHostPort(hostPort); err != nil {
-					log.Fatalf("go-dnsmasq: nameserver is invalid: %s", err)
+					log.Fatalf("This nameserver is invalid: %s", err)
 				}
 
 				nameservers = append(nameservers, hostPort)
@@ -137,7 +146,7 @@ func main() {
 			for _, domain := range strings.Split(sd, ",") {
 
 				if dns.CountLabel(domain) < 2 {
-					log.Fatalf("go-dnsmasq: SEARCH domain is not a FQDN: %s", domain)
+					log.Fatalf("This search domain is not a FQDN: %s", domain)
 				}
 				domain = dns.Fqdn(strings.ToLower(domain))
 				searchDomains = append(searchDomains, domain)
@@ -149,7 +158,7 @@ func main() {
 		}
 
 		if err := validateHostPort(listen); err != nil {
-			log.Fatalf("go-dnsmasq: listen address is invalid: %s", err)
+			log.Fatalf("The listen address is invalid: %s", err)
 		}
 
 		config := &server.Config{
@@ -169,11 +178,11 @@ func main() {
 
 		if err := server.SetDefaults(config); err != nil {
 			if !config.NoRec && len(config.Nameservers) == 0 {
-				log.Fatalf("go-dnsmasq: found no nameservers in resolv.conf and --nameservers flag not supplied: %s", err)
+				log.Fatalf("No nameservers found in resolv.conf and --nameservers option not supplied: %s", err)
 			} else if config.AppendDomain && len(config.SearchDomains) == 0 {
-				log.Fatalf("go-dnsmasq: found no SEARCH domains in resolv.conf and --search-domains flag not supplied: %s", err)
+				log.Fatalf("No search domains found in resolv.conf and --search-domains option not supplied: %s", err)
 			} else {
-				log.Printf("go-dnsmasq: error parsing resolv.conf: %s", err)
+				log.Warnf("Error parsing resolv.conf: %s", err)
 			}
 		}
 
@@ -181,7 +190,7 @@ func main() {
 			stubmap := make(map[string][]string)
 			segments := strings.Split(stubzones, "/")
 			if len(segments) != 2 || len(segments[0]) == 0 || len(segments[1]) == 0 {
-				log.Fatalf("go-dnsmasq: stubzones argument is invalid")
+				log.Fatalf("The --stubzones argument is invalid")
 			}
 
 			hostPort = segments[1]
@@ -190,12 +199,12 @@ func main() {
 			}
 
 			if err := validateHostPort(hostPort); err != nil {
-				log.Fatalf("go-dnsmasq: stubzones server address invalid: %s", err)
+				log.Fatalf("This stubzones server address invalid: %s", err)
 			}
 
 			for _, sdomain := range strings.Split(segments[0], ",") {
 				if dns.CountLabel(sdomain) < 2 {
-					log.Fatalf("go-dnsmasq: stubzones domain is not a FQDN: %s", sdomain)
+					log.Fatalf("This stubzones domain is not a FQDN: %s", sdomain)
 				}
 				sdomain = dns.Fqdn(sdomain)
 				stubmap[sdomain] = append(stubmap[sdomain], hostPort)
@@ -204,9 +213,9 @@ func main() {
 			config.Stub = &stubmap
 		}
 
-		log.Printf("starting go-dnsmasq %s ...", Version)
+		log.Infof("Starting go-dnsmasq server %s ...", Version)
 		if config.AppendDomain {
-			logf("configured search domains: %v", config.SearchDomains)
+			log.Infof("Search domains in use: %v", config.SearchDomains)
 		}
 
 		hf, err := hosts.NewHostsfile(config.Hostsfile, &hosts.Config{
@@ -214,7 +223,7 @@ func main() {
 			Verbose: config.Verbose,
 		})
 		if err != nil {
-			log.Fatalf("go-dnsmasq: error loading hostsfile: %s", err)
+			log.Fatalf("Error loading hostsfile: %s", err)
 		}
 
 		s := server.New(hf, config, Version)
@@ -225,7 +234,7 @@ func main() {
 			address, _, _ := net.SplitHostPort(config.DnsAddr)
 			err := resolvconf.StoreAddress(address)
 			if err != nil {
-				log.Printf("go-dnsmasq: failed to register as default resolver: %s", err)
+				log.Warnf("Failed to register as default resolver: %s", err)
 			}
 			defer resolvconf.Clean()
 		}
@@ -238,7 +247,7 @@ func main() {
 
 		exitErr = <-exitReason
 		if exitErr != nil {
-			log.Fatalf("go-dnsmasq: %s", err)
+			log.Fatalf("Server error: %s", err)
 		}
 	}
 
@@ -251,11 +260,11 @@ func validateHostPort(hostPort string) error {
 		return err
 	}
 	if ip := net.ParseIP(host); ip == nil {
-		return fmt.Errorf("bad IP address: %s", host)
+		return fmt.Errorf("Bad IP address: %s", host)
 	}
 
 	if p, _ := strconv.Atoi(port); p < 1 || p > 65535 {
-		return fmt.Errorf("bad port number %s", port)
+		return fmt.Errorf("Bad port number %s", port)
 	}
 	return nil
 }
