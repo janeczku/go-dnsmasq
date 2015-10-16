@@ -26,7 +26,7 @@ import (
 )
 
 // var Version string
-const Version = "0.9.4"
+const Version = "0.9.5"
 
 var (
 	nameservers   = []string{}
