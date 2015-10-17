@@ -252,7 +252,7 @@ func main() {
 			address, _, _ := net.SplitHostPort(config.DnsAddr)
 			err := resolvconf.StoreAddress(address)
 			if err != nil {
-				log.Warnf("Failed to register as default resolver: %s", err)
+				log.Warnf("Failed to register as default nameserver: %s", err)
 			}
 			defer resolvconf.Clean()
 		}
