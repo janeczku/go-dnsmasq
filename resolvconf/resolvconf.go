@@ -10,10 +10,11 @@ package resolvconf
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"regexp"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 const RESOLVCONF_COMMENT = "# added by go-dnsmasq"
