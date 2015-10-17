@@ -6,11 +6,12 @@ package hosts
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strings"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type hostlist []*hostname
@@ -28,7 +29,7 @@ func newHostlist(data []byte) *hostlist {
 		for _, hostname := range parseLine(v) {
 			err := hostlist.add(hostname)
 			if err != nil {
-				log.Printf("go-dnsmasq: warning: %s", err)
+				log.Warnf("Bad formatted hostsfile line: %s", err)
 			}
 		}
 	}
@@ -109,7 +110,7 @@ func parseLine(line string) hostlist {
 	case ip.To16() != nil:
 		isIPv6 = true
 	default:
-		log.Printf("go-dnsmasq: notice: invalid IP address found in hostsfile: %s", address)
+		log.Warnf("Invalid IP address found in hostsfile: %s", address)
 		return hostnames
 	}
 
