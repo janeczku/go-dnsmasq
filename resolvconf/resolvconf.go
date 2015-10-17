@@ -31,7 +31,7 @@ func Clean() {
 }
 
 func updateResolvConf(insert, path string) error {
-	log.Println("go-dnsmasq: updating /etc/resolv.conf")
+	log.Debugf("Configuring nameservers in /etc/resolv.conf")
 
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {

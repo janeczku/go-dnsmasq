@@ -7,12 +7,12 @@ package hosts
 
 import (
 	"io/ioutil"
-	"log"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/miekg/dns"
 )
 
@@ -53,13 +53,11 @@ func NewHostsfile(path string, config *Config) (*Hostsfile, error) {
 		go h.monitorHostEntries(h.config.Poll)
 	}
 
-	if h.config.Verbose {
-		log.Printf("Found entries in %s:\n", h.file.path)
-		for _, hostname := range *h.hosts {
-			log.Printf("%s %s \n",
-				hostname.domain,
-				hostname.ip.String())
-		}
+	log.Debugf("Found host:ip pairs in %s:", h.file.path)
+	for _, hostname := range *h.hosts {
+		log.Debugf("%s : %s",
+			hostname.domain,
+			hostname.ip.String())
 	}
 
 	return &h, nil
@@ -119,7 +117,7 @@ func (h *Hostsfile) monitorHostEntries(poll int) {
 
 		mtime, size, err := hostsFileMetadata(hf.path)
 		if err != nil {
-			log.Printf("go-dnsmasq: error stating hostsfile: %s", err)
+			log.Warnf("Error stating hostsfile: %s", err)
 			continue
 		}
 
@@ -128,12 +126,10 @@ func (h *Hostsfile) monitorHostEntries(poll int) {
 		}
 
 		if err := h.loadHostEntries(); err != nil {
-			log.Printf("go-dnsmasq: error opening hostsfile: %s", err)
+			log.Warnf("Error parsing hostsfile: %s", err)
 		}
 
-		if h.config.Verbose {
-			log.Printf("go-dnsmasq: reloaded changed hostsfile")
-		}
+		log.Debug("Reloaded updated hostsfile")
 
 		h.hostMutex.Lock()
 		h.file.mtime = mtime
