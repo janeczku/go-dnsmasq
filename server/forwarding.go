@@ -38,7 +38,7 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	var nameFqdn string
 
 	if dns.CountLabel(name) < 2 || dns.CountLabel(name) < s.config.Ndots {
-		// append search domain to single-label queries
+		// always append search domain to single-label queries
 		if dns.CountLabel(name) < 2 && len(s.config.SearchDomains) > 0 {
 			searchFix = true
 		} else {
@@ -87,17 +87,16 @@ Redo:
 			// If rcode is NXDOMAIN repeat query
 			if r.Rcode == dns.RcodeNameError {
 				if try < len(s.config.Nameservers) {
-					// repeat using other available nameservers
+					// repeat using left nameservers
 					try++
 					nsid = (nsid + 1) % len(s.config.Nameservers)
 					goto Redo
 				} else if (sindex + 1) < len(s.config.SearchDomains) {
-					// repeat using other available search domains
+					// repeat using left search domains
 					sindex++
 					goto RedoSearch
 				}
 			}
-
 			// Insert CName resolving the queried hostname to hostname.searchdomain
 			if len(r.Answer) > 0 {
 				answers := []dns.RR{searchCname}
@@ -108,6 +107,11 @@ Redo:
 			}
 			// Restore original question
 			r.Question[0] = reqOrig.Question[0]
+		} else if r.Rcode == dns.RcodeNameError && len(s.config.SearchDomains) > 0 {
+			// Got a NXDOMAIN reply for a multi-label qname
+			// Need to continue resolving it by qualifying the name with the search paths
+			searchFix = true
+			goto RedoSearch			
 		}
 		r.Compress = true
 		r.Id = req.Id
