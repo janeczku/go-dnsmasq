@@ -122,11 +122,6 @@ Redo:
 			}
 			// Restore original question
 			r.Question[0] = reqOrig.Question[0]
-		} else if r.Rcode == dns.RcodeNameError && len(s.config.SearchDomains) > 0 {
-			// Got a NXDOMAIN reply for a multi-label qname
-			// Need to continue resolving it by qualifying the name with the search paths
-			searchFix = true
-			goto RedoSearch			
 		}
 
 		r.Compress = true
