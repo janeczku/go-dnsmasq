@@ -33,15 +33,13 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 
 	reqOrig := req.Copy()
 	name := req.Question[0].Name
-	searchFix := false
+	doingSearch := false
 	searchCname := new(dns.CNAME)
 	var nameFqdn string
 
 	if dns.CountLabel(name) < 2 || dns.CountLabel(name) < s.config.Ndots {
-		// always append search domain to single-label queries
-		if dns.CountLabel(name) < 2 && len(s.config.SearchDomains) > 0 {
-			searchFix = true
-		} else {
+		// Don't process single-label queries when searching is not enabled
+		if dns.CountLabel(name) < 2 && !s.config.AppendDomain {
 			log.Debugf("Can not forward query, name too short: `%s'", name)
 			m := new(dns.Msg)
 			m.SetReply(req)
@@ -56,46 +54,65 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	tcp := isTCP(w)
 
 	var (
-		r      *dns.Msg
-		err    error
-		try    int
-		sindex int
+		r       *dns.Msg
+		err     error
+		nsIndex int // Primary server (first in list) is always queried first (libc logic)
+		sdIndex int
 	)
 
-RedoSearch:
-	if searchFix {
-		nameFqdn = strings.ToLower(appendDomain(name, s.config.SearchDomains[sindex]))
+Redo:
+	if !doingSearch && dns.CountLabel(name) < 2 { // always qualify single-label names before forwarding
+		doingSearch = true
+	}
+	if doingSearch {
+		nameFqdn = strings.ToLower(appendDomain(name, s.config.SearchDomains[sdIndex]))
 		searchCname.Hdr = dns.RR_Header{Name: name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: 360}
 		searchCname.Target = nameFqdn
 		req.Question[0] = dns.Question{nameFqdn, req.Question[0].Qtype, req.Question[0].Qclass}
 	}
 
-	// Use request Id for "random" nameserver selection.
-	nsid := int(req.Id) % len(s.config.Nameservers)
-	try = 0
-Redo:
 	switch tcp {
 	case false:
-		r, _, err = s.dnsUDPclient.Exchange(req, s.config.Nameservers[nsid])
+		r, _, err = s.dnsUDPclient.Exchange(req, s.config.Nameservers[nsIndex])
 	case true:
-		r, _, err = s.dnsTCPclient.Exchange(req, s.config.Nameservers[nsid])
+		r, _, err = s.dnsTCPclient.Exchange(req, s.config.Nameservers[nsIndex])
 	}
 	if err == nil {
-		if searchFix {
-			// If rcode is NXDOMAIN repeat query
-			if r.Rcode == dns.RcodeNameError {
-				if try < len(s.config.Nameservers) {
-					// repeat using left nameservers
-					try++
-					nsid = (nsid + 1) % len(s.config.Nameservers)
+		if s.config.AppendDomain { // searching is enabled
+			// replicate libc's getaddrinfo.c search logic
+			switch {
+			case r.Rcode == dns.RcodeSuccess && len(r.Answer) == 0: // NODATA
+				fallthrough
+			case r.Rcode == dns.RcodeNameError: // NXDOMAIN
+				fallthrough
+			case r.Rcode == dns.RcodeServerFailure: // SERVFAIL
+				if doingSearch && (sdIndex + 1) < len(s.config.SearchDomains) {
+					// continue searching
+					sdIndex++
 					goto Redo
-				} else if (sindex + 1) < len(s.config.SearchDomains) {
-					// repeat using left search domains
-					sindex++
-					goto RedoSearch
+				}
+				if !doingSearch {
+					// start searching
+					doingSearch = true
+					goto Redo
 				}
 			}
-			// Insert CName resolving the queried hostname to hostname.searchdomain
+		}
+
+		if r.Rcode == dns.RcodeServerFailure || r.Rcode == dns.RcodeRefused {
+			// continue with next available nameserver
+			if (nsIndex + 1) < len(s.config.Nameservers) {
+				nsIndex++
+				doingSearch = false
+				sdIndex = 0
+				goto Redo
+			}	
+		}
+
+		// We are done querying. Process the reply to return to the client.
+
+		if doingSearch {
+			// Insert cname record pointing queryname to queryname.searchdomain
 			if len(r.Answer) > 0 {
 				answers := []dns.RR{searchCname}
 				for _, rr := range r.Answer {
@@ -111,17 +128,21 @@ Redo:
 			searchFix = true
 			goto RedoSearch			
 		}
+
 		r.Compress = true
 		r.Id = req.Id
 		w.WriteMsg(r)
 		return r
-	}
-	// Seen an error, this can only mean, "server not reached", try again
-	// but only if we have not exausted our nameservers.
-	if try < len(s.config.Nameservers) {
-		try++
-		nsid = (nsid + 1) % len(s.config.Nameservers)
-		goto Redo
+	} else {
+		log.Debugf("Error querying nameserver %s: %q", s.config.Nameservers[nsIndex], err)
+		// Got an error, this usually means the server did not respond
+		// Continue with next available nameserver
+		if (nsIndex + 1) < len(s.config.Nameservers) {
+			nsIndex++
+			doingSearch = false
+			sdIndex = 0
+			goto Redo
+		}
 	}
 
 	log.Errorf("Failure forwarding request %q", err)

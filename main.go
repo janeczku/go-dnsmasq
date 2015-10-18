@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -119,6 +120,11 @@ func main() {
 			Usage:  "enable syslog logging",
 			EnvVar: "DNSMASQ_SYSLOG",
 		},
+		cli.BoolFlag{
+			Name:   "multithreading",
+			Usage:  "enable multithreading (num physical CPU cores)",
+			EnvVar: "DNSMASQ_MULTITHREADING",
+		},
 	}
 	app.Action = func(c *cli.Context) {
 		exitReason := make(chan error)
@@ -129,6 +135,10 @@ func main() {
 			log.Infoln("Application exit requested by signal:", sig)
 			exitReason <- nil
 		}()
+
+		if c.Bool("multithreading") {
+			runtime.GOMAXPROCS(runtime.NumCPU() + 1)
+		}
 
 		if c.Bool("verbose") {
 			log.SetLevel(log.DebugLevel)

@@ -23,17 +23,17 @@ const RESOLVCONF_PATH = "/etc/resolv.conf"
 var resolvConfPattern = regexp.MustCompile("(?m:^.*" + regexp.QuoteMeta(RESOLVCONF_COMMENT) + ")(?:$|\n)")
 
 func StoreAddress(address string) error {
+	log.Debugf("Configuring nameserver in /etc/resolv.conf")
 	resolveConfEntry := fmt.Sprintf("nameserver %s %s\n", address, RESOLVCONF_COMMENT)
 	return updateResolvConf(resolveConfEntry, RESOLVCONF_PATH)
 }
 
 func Clean() {
+	log.Debugf("Restoring /etc/resolv.conf")
 	updateResolvConf("", RESOLVCONF_PATH)
 }
 
 func updateResolvConf(insert, path string) error {
-	log.Debugf("Configuring nameservers in /etc/resolv.conf")
-
 	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return err
