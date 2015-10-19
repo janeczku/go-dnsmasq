@@ -31,15 +31,11 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 		return m
 	}
 
-	reqOrig := req.Copy()
 	name := req.Question[0].Name
-	doingSearch := false
-	searchCname := new(dns.CNAME)
-	var nameFqdn string
 
 	if dns.CountLabel(name) < 2 || dns.CountLabel(name) < s.config.Ndots {
 		// Don't process single-label queries when searching is not enabled
-		if dns.CountLabel(name) < 2 && !s.config.AppendDomain {
+		if !s.config.AppendDomain || len(s.config.SearchDomains) == 0 {
 			log.Debugf("Can not forward query, name too short: `%s'", name)
 			m := new(dns.Msg)
 			m.SetReply(req)
@@ -51,24 +47,37 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 		}
 	}
 
-	tcp := isTCP(w)
-
 	var (
 		r       *dns.Msg
 		err     error
-		nsIndex int // Primary server (first in list) is always queried first (libc logic)
-		sdIndex int
+		nsIndex int // nameserver list index
+		sdIndex int // search list index
+		sdName  string // QNAME with search path
+		sdCname = new(dns.CNAME) // CNAME record returned when query resolved by searching
 	)
 
+	tcp := isTCP(w)
+	reqCopy := req.Copy()
+	canSearch := false
+	doingSearch := false
+
+	if s.config.AppendDomain && len(s.config.SearchDomains) > 0 {
+		canSearch = true
+	}
+
 Redo:
-	if !doingSearch && dns.CountLabel(name) < 2 { // always qualify single-label names before forwarding
-		doingSearch = true
+	if dns.CountLabel(name) < 2 {
+		// always qualify single-label names
+		if !doingSearch && canSearch {
+			doingSearch = true
+			sdIndex = 0
+		}
 	}
 	if doingSearch {
-		nameFqdn = strings.ToLower(appendDomain(name, s.config.SearchDomains[sdIndex]))
-		searchCname.Hdr = dns.RR_Header{Name: name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: 360}
-		searchCname.Target = nameFqdn
-		req.Question[0] = dns.Question{nameFqdn, req.Question[0].Qtype, req.Question[0].Qclass}
+		sdName = strings.ToLower(appendDomain(name, s.config.SearchDomains[sdIndex]))
+		sdCname.Hdr = dns.RR_Header{Name: name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: 360}
+		sdCname.Target = sdName
+		req.Question[0] = dns.Question{sdName, req.Question[0].Qtype, req.Question[0].Qclass}
 	}
 
 	switch tcp {
@@ -78,7 +87,7 @@ Redo:
 		r, _, err = s.dnsTCPclient.Exchange(req, s.config.Nameservers[nsIndex])
 	}
 	if err == nil {
-		if s.config.AppendDomain { // searching is enabled
+		if canSearch {
 			// replicate libc's getaddrinfo.c search logic
 			switch {
 			case r.Rcode == dns.RcodeSuccess && len(r.Answer) == 0: // NODATA
@@ -94,6 +103,7 @@ Redo:
 				if !doingSearch {
 					// start searching
 					doingSearch = true
+					sdIndex = 0
 					goto Redo
 				}
 			}
@@ -104,7 +114,6 @@ Redo:
 			if (nsIndex + 1) < len(s.config.Nameservers) {
 				nsIndex++
 				doingSearch = false
-				sdIndex = 0
 				goto Redo
 			}	
 		}
@@ -112,16 +121,16 @@ Redo:
 		// We are done querying. Process the reply to return to the client.
 
 		if doingSearch {
-			// Insert cname record pointing queryname to queryname.searchdomain
+			// Insert cname record pointing name to name.searchdomain
 			if len(r.Answer) > 0 {
-				answers := []dns.RR{searchCname}
+				answers := []dns.RR{sdCname}
 				for _, rr := range r.Answer {
 					answers = append(answers, rr)
 				}
 				r.Answer = answers
 			}
 			// Restore original question
-			r.Question[0] = reqOrig.Question[0]
+			r.Question[0] = reqCopy.Question[0]
 		}
 
 		r.Compress = true
@@ -135,15 +144,15 @@ Redo:
 		if (nsIndex + 1) < len(s.config.Nameservers) {
 			nsIndex++
 			doingSearch = false
-			sdIndex = 0
 			goto Redo
 		}
 	}
 
+	// If we got here it means forwarding failed
 	log.Errorf("Failure forwarding request %q", err)
 	m := new(dns.Msg)
-	m.SetReply(reqOrig)
-	m.SetRcode(reqOrig, dns.RcodeServerFailure)
+	m.SetReply(reqCopy)
+	m.SetRcode(reqCopy, dns.RcodeServerFailure)
 	w.WriteMsg(m)
 	return m
 }
