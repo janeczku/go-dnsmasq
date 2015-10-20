@@ -92,7 +92,7 @@ Redo:
 		if canSearch {
 			// replicate libc's getaddrinfo.c search logic
 			switch {
-			case r.Rcode == dns.RcodeSuccess && len(r.Answer) == 0: // NODATA
+			case r.Rcode == dns.RcodeSuccess && len(r.Answer) == 0 && !r.MsgHdr.Truncated: // NODATA !Truncated
 				fallthrough
 			case r.Rcode == dns.RcodeNameError: // NXDOMAIN
 				fallthrough
