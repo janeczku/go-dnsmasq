@@ -1,19 +1,33 @@
 # go-dnsmasq
 *Version 0.9.8*
 
-go-dnsmasq is a lightweight (1.2 MB) caching DNS forwarder/proxy with minimal filesystem and runtime overhead. It was designed but is not limited to be run in Docker containers.
+go-dnsmasq is a light weight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead. It is designed to serve global DNS records by forwarding queries to upstream nameservers as well as local hostname records from a hostsfile.
 
-### Notable features (all configurable)
+### Application examples:
 
-* Uses the nameservers configured in /etc/resolv.conf to forward queries to (can be overriden)
-* Manages /etc/resolv.conf to make itself the default nameserver on the host
-* Parses the entries of a hostsfile and monitors the file for changes
-* Supports caching of answers
-* Replicates the `search domain` feature not supported in musl-libc based distros (e.g. Alpine Linux)
-* Allows configuration of stubzones to use a different nameserver for certain domain(s)
+- as local DNS cache for Docker containers
+- as nameserver providing local and global DNS records to clients in a private networks 
+- as DNS proxy providing `search` domain path capability to `musl-libc` based clients (e.g. Alpine Linux)
+
+### Features
+
+* Parses upstream nameservers from resolv.conf
+* Configures itself as local DNS cache in resolv.conf
+* Serves static hostname records from a hostsfile
+* Caching of answers
+* Replicates the `search` domain suffixing not supported by `musl-libc` based Linux distributions.
+* Stubzones (use a different nameserver for specific domains)
 * Round-robin of address records
 * Sending stats to Graphite server
-* All options are also configurable through environmental variables
+* Configuration through CLI and environment variables
+
+### Resolver logic
+
+DNS queries are processed according to the logic used by the GNU C resolver library:
+* The first nameserver (as listed in resolv.conf or configured by `--nameservers`) is considered the primary server. Additional servers are queried only when the primary server times out or returns an error code.
+* Multiple `search` paths are tried in the order they are configured. 
+* Single-label queries (e.g.: "redis-service") will always be qualified with `search` list elements
+* For multi-label queries (ndots >= 1) the name will be tried first as an absolute name before any `search` list elements are appended to it.
 
 ### Commandline options
 
@@ -38,7 +52,7 @@ GLOBAL OPTIONS:
    --hostsfile, -f      full path to hostsfile (e.g. ‘/etc/hosts‘) [$DNSMASQ_HOSTSFILE]
    --hostsfile-poll, -p "0"   how frequently to poll hostsfile (in seconds, ‘0‘ to disable) [$DNSMASQ_POLL]
    --search-domains, -s    specify SEARCH domains taking precedence over /etc/resolv.conf: ‘fqdn[,fqdn]‘ [$DNSMASQ_SEARCH]
-   --append-search-domains, -a   enable suffixing single-label queries with SEARCH domains [$DNSMASQ_APPEND]
+   --append-search-domains, -a   enable suffixing queries with SEARCH domains [$DNSMASQ_APPEND]
    --no-rec       disable recursion [$DNSMASQ_NOREC]
    --round-robin     enable round robin of A/AAAA replies [$DNSMASQ_RR]
    --systemd         bind to socket(s) activated by systemd (ignores --listen) [$DNSMASQ_SYSTEMD]
