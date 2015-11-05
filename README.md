@@ -36,7 +36,7 @@ NAME:
    go-dnsmasq - Lightweight caching DNS proxy for Docker containers
 
 USAGE:
-   ./go-dnsmasq-min_darwin-amd64 [global options] command [command options] [arguments...]
+   go-dnsmasq [global options] command [command options] [arguments...]
 
 VERSION:
    0.9.8
@@ -52,7 +52,9 @@ GLOBAL OPTIONS:
    --hostsfile, -f      full path to hostsfile (e.g. ‘/etc/hosts‘) [$DNSMASQ_HOSTSFILE]
    --hostsfile-poll, -p "0"   how frequently to poll hostsfile (in seconds, ‘0‘ to disable) [$DNSMASQ_POLL]
    --search-domains, -s    specify SEARCH domains taking precedence over /etc/resolv.conf: ‘fqdn[,fqdn]‘ [$DNSMASQ_SEARCH]
-   --append-search-domains, -a   enable suffixing queries with SEARCH domains [$DNSMASQ_APPEND]
+   --append-search-domains, -a   enable suffixing single-label queries with SEARCH domains [$DNSMASQ_APPEND]
+   --rcache, -r "0"     capacity of the response cache (‘0‘ to disable caching) [$DNSMASQ_RCACHE]
+   --rcache-ttl "60"    TTL of entries in the response cache [$DNSMASQ_RCACHE_TTL]
    --no-rec       disable recursion [$DNSMASQ_NOREC]
    --round-robin     enable round robin of A/AAAA replies [$DNSMASQ_RR]
    --systemd         bind to socket(s) activated by systemd (ignores --listen) [$DNSMASQ_SYSTEMD]
