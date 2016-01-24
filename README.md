@@ -1,35 +1,35 @@
 # go-dnsmasq
 *Version 0.9.8*
 
-go-dnsmasq is a light weight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead. It is designed to serve global DNS records by forwarding queries to upstream nameservers as well as local hostname records from a hostsfile.
+go-dnsmasq is a light weight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead.
 
 ### Application examples:
 
-- as local DNS cache for Docker containers
-- as nameserver providing local and global DNS records to clients in a private networks 
-- as DNS proxy providing `search` domain path capability to `musl-libc` based clients (e.g. Alpine Linux)
+- Caching DNS server/forwarder in a local network
+- Container/Host DNS cache
+- DNS proxy providing DNS `search` capabilities to `musl-libc` based clients, particularly Alpine Linux
 
 ### Features
 
-* Parses upstream nameservers from resolv.conf
-* Configures itself as local DNS cache in resolv.conf
-* Serves static hostname records from a hostsfile
-* Caching of answers
-* Replicates the `search` domain suffixing not supported by `musl-libc` based Linux distributions.
-* Stubzones (use a different nameserver for specific domains)
-* Round-robin of address records
-* Sending stats to Graphite server
-* Configuration through CLI and environment variables
+* Automatically set upstream `nameservers` and `search` domains from resolv.conf
+* Automatically set go-dnsmasq as primary nameserver for the host it is running on
+* Serve static records from a hostsfile
+* Provide DNS answer caching
+* Replicate the `search` domain treatment not supported by `musl-libc` based Linux distributions
+* Configure stubzones (different nameserver for specific domains)
+* Round-robin of DNS records
+* Send server metrics to Graphite and StatHat
+* Configuration through both command line flags and environment variables
 
-### Resolver logic
+### Resolve logic
 
-DNS queries are processed according to the logic used by the GNU C resolver library:
-* The first nameserver (as listed in resolv.conf or configured by `--nameservers`) is considered the primary server. Additional servers are queried only when the primary server times out or returns an error code.
-* Multiple `search` paths are tried in the order they are configured. 
-* Single-label queries (e.g.: "redis-service") will always be qualified with `search` list elements
-* For multi-label queries (ndots >= 1) the name will be tried first as an absolute name before any `search` list elements are appended to it.
+DNS queries are resolved in the style of the GNU libc resolver:
+* The first nameserver (as listed in resolv.conf or configured by `--nameservers`) is always queried first, additional servers are considered fallbacks
+* Multiple `search` domains are tried in the order they are configured. 
+* Single-label queries (e.g.: "redis-service") are always qualified with the `search` domains
+* Multi-label queries (ndots >= 1) are first tried as absolute names before qualifying them with the `search` domains
 
-### Commandline options
+### Command-line options
 
 ```sh
 NAME:
@@ -67,7 +67,21 @@ GLOBAL OPTIONS:
 
 ### Environment Variables
 
-See above (the names inside the brackets).
+See command-line options.
+
+##### Enable Graphite/StatHat metrics using environment variables
+
+EnvVar: **GRAPHITE_SERVER**  
+Default: ` `  
+Set to the `host:port` of the Graphite server
+
+EnvVar: **GRAPHITE_PREFIX**  
+Default: `go-dnsmasq`  
+Set a custom prefix for Graphite metrics
+
+EnvVar: **STATHAT_USER**  
+Default: ` `  
+Set to your StatHat account email address
 
 ### Usage
 
