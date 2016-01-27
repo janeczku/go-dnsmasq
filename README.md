@@ -12,9 +12,9 @@ go-dnsmasq is a light weight (1.2 MB) DNS caching server/forwarder with minimal 
 ### Features
 
 * Automatically set upstream `nameservers` and `search` domains from resolv.conf
-* Automatically set go-dnsmasq as primary nameserver for the host it is running on
-* Serve static records from a hostsfile
-* Provide DNS answer caching
+* Insert itself into the host's /etc/resolv.conf on start
+* Serve static A/AAAA records from a hostsfile
+* Provide DNS response caching
 * Replicate the `search` domain treatment not supported by `musl-libc` based Linux distributions
 * Configure stubzones (different nameserver for specific domains)
 * Round-robin of DNS records
@@ -29,47 +29,30 @@ DNS queries are resolved in the style of the GNU libc resolver:
 * Single-label queries (e.g.: "redis-service") are always qualified with the `search` domains
 * Multi-label queries (ndots >= 1) are first tried as absolute names before qualifying them with the `search` domains
 
-### Command-line options
+### Command-line options / environment variables
 
-```sh
-NAME:
-   go-dnsmasq - Lightweight caching DNS proxy for Docker containers
+| Flag                           | Description                                                                   | Default       | Environment vars     |
+| ------------------------------ | ----------------------------------------------------------------------------- | ------------- | -------------------- |
+| --listen, -l                   | Address to listen on  `host[:port]`                                           | 127.0.0.1:53  | $DNSMASQ_LISTEN      |
+| --default-resolver, -d         | Insert itself into /etc/resolv.conf                                           | False         | $DNSMASQ_DEFAULT     |
+| --nameservers, -n              | Comma-separated list of nameservers `host[:port]`                             | -             | $DNSMASQ_SERVERS     |
+| --stubzones, -z                | Use different nameservers for specific domains `fqdn[,fqdn]/host[:port]`      | -             | $DNSMASQ_STUB        |
+| --hostsfile, -f                | Full path to a hostsfile                                                      | -             | $DNSMASQ_HOSTSFILE   |
+| --hostsfile-poll, -p           | How frequently to check hostsfile for changes (seconds, ‘0‘ to disable)       | 0             | $DNSMASQ_POLL        |
+| --search-domains, -s           | Specify SEARCH domains (takes precedence over /etc/resolv.conf) `fqdn[,fqdn]` | -             | $DNSMASQ_SEARCH      |
+| --append-search-domains, -a    | Qualify queries with SEARCH domains                                           | False         | $DNSMASQ_APPEND      |
+| --rcache, -r                   | Capacity of the response cache (‘0‘ to disable cache)                         | 0             | $DNSMASQ_RCACHE      |
+| --rcache-ttl                   | TTL for entries in the response cache                                         | 60            | $DNSMASQ_RCACHE_TTL  |
+| --no-rec                       | Disable recursion                                                             | False         | $DNSMASQ_NOREC       |
+| --round-robin                  | enable round robin of A/AAAA records                                          | False         | $DNSMASQ_RR          |
+| --systemd                      | Bind to socket(s) activated by Systemd (ignores --listen)                     | False         | $DNSMASQ_SYSTEMD     |
+| --verbose                      | Enable verbose logging                                                        | False         | $DNSMASQ_VERBOSE     |
+| --syslog                       | Log to syslog                                                                 | False         | $DNSMASQ_SYSLOG      |
+| --multithreading               | Enable multithreading                                                         | False         |                      |
+| --help, -h                     | Show help                                                                     |               |                      |
+| --version, -v                  | Print the version                                                             |               |                      |
 
-USAGE:
-   go-dnsmasq [global options] command [command options] [arguments...]
-
-VERSION:
-   0.9.8
-
-COMMANDS:
-   help, h  Shows a list of commands or help for one command
-
-GLOBAL OPTIONS:
-   --listen, -l "127.0.0.1:53"   listen address: ‘host[:port]‘ [$DNSMASQ_LISTEN]
-   --default-resolver, -d  make go-dnsmasq the local primary nameserver (updates /etc/resolv.conf) [$DNSMASQ_DEFAULT]
-   --nameservers, -n       comma-separated list of name servers: ‘host[:port]‘ [$DNSMASQ_SERVERS]
-   --stubzones, -z      domains to resolve using a specific nameserver: ‘fqdn[,fqdn]/host[:port]‘ [$DNSMASQ_STUB]
-   --hostsfile, -f      full path to hostsfile (e.g. ‘/etc/hosts‘) [$DNSMASQ_HOSTSFILE]
-   --hostsfile-poll, -p "0"   how frequently to poll hostsfile (in seconds, ‘0‘ to disable) [$DNSMASQ_POLL]
-   --search-domains, -s    specify SEARCH domains taking precedence over /etc/resolv.conf: ‘fqdn[,fqdn]‘ [$DNSMASQ_SEARCH]
-   --append-search-domains, -a   enable suffixing single-label queries with SEARCH domains [$DNSMASQ_APPEND]
-   --rcache, -r "0"     capacity of the response cache (‘0‘ to disable caching) [$DNSMASQ_RCACHE]
-   --rcache-ttl "60"    TTL of entries in the response cache [$DNSMASQ_RCACHE_TTL]
-   --no-rec       disable recursion [$DNSMASQ_NOREC]
-   --round-robin     enable round robin of A/AAAA replies [$DNSMASQ_RR]
-   --systemd         bind to socket(s) activated by systemd (ignores --listen) [$DNSMASQ_SYSTEMD]
-   --verbose         enable verbose logging [$DNSMASQ_VERBOSE]
-   --syslog       enable syslog logging [$DNSMASQ_SYSLOG]
-   --multithreading     enable multithreading (num physical CPU cores) [$DNSMASQ_MULTITHREADING]
-   --help, -h        show help
-   --version, -v     print the version
-```
-
-### Environment Variables
-
-See command-line options.
-
-##### Enable Graphite/StatHat metrics using environment variables
+#### Enable Graphite/StatHat metrics
 
 EnvVar: **GRAPHITE_SERVER**  
 Default: ` `  
