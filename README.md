@@ -16,6 +16,7 @@ go-dnsmasq is a light weight (1.2 MB) DNS caching server/forwarder with minimal 
 * Serve static A/AAAA records from a hostsfile
 * Provide DNS response caching
 * Replicate the `search` domain treatment not supported by `musl-libc` based Linux distributions
+* Supports virtually unlimited number of `search` paths and `nameservers` ([related Kubernetes article](https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/dns#known-issues))
 * Configure stubzones (different nameserver for specific domains)
 * Round-robin of DNS records
 * Send server metrics to Graphite and StatHat
@@ -34,7 +35,7 @@ DNS queries are resolved in the style of the GNU libc resolver:
 | Flag                           | Description                                                                   | Default       | Environment vars     |
 | ------------------------------ | ----------------------------------------------------------------------------- | ------------- | -------------------- |
 | --listen, -l                   | Address to listen on  `host[:port]`                                           | 127.0.0.1:53  | $DNSMASQ_LISTEN      |
-| --default-resolver, -d         | Insert itself into /etc/resolv.conf                                           | False         | $DNSMASQ_DEFAULT     |
+| --default-resolver, -d         | Update resolv.conf and make go-dnsmasq the host's primary nameserver          | False         | $DNSMASQ_DEFAULT     |
 | --nameservers, -n              | Comma-separated list of nameservers `host[:port]`                             | -             | $DNSMASQ_SERVERS     |
 | --stubzones, -z                | Use different nameservers for specific domains `fqdn[,fqdn]/host[:port]`      | -             | $DNSMASQ_STUB        |
 | --hostsfile, -f                | Full path to a hostsfile                                                      | -             | $DNSMASQ_HOSTSFILE   |
