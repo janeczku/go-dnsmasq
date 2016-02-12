@@ -1,5 +1,5 @@
 # go-dnsmasq
-*Version 0.9.8*
+*Version 0.9.9*
 
 go-dnsmasq is a light weight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead.
 
@@ -37,10 +37,10 @@ DNS queries are resolved in the style of the GNU libc resolver:
 | --listen, -l                   | Address to listen on  `host[:port]`                                           | 127.0.0.1:53  | $DNSMASQ_LISTEN      |
 | --default-resolver, -d         | Update resolv.conf and make go-dnsmasq the host's primary nameserver          | False         | $DNSMASQ_DEFAULT     |
 | --nameservers, -n              | Comma-separated list of nameservers `host[:port]`                             | -             | $DNSMASQ_SERVERS     |
-| --stubzones, -z                | Use different nameservers for specific domains `fqdn[,fqdn]/host[:port]`      | -             | $DNSMASQ_STUB        |
+| --stubzones, -z                | Use different nameservers for specific domain `domain[,domain]/host[:port]`   | -             | $DNSMASQ_STUB        |
 | --hostsfile, -f                | Full path to a hostsfile                                                      | -             | $DNSMASQ_HOSTSFILE   |
 | --hostsfile-poll, -p           | How frequently to check hostsfile for changes (seconds, ‘0‘ to disable)       | 0             | $DNSMASQ_POLL        |
-| --search-domains, -s           | Specify SEARCH domains (takes precedence over /etc/resolv.conf) `fqdn[,fqdn]` | -             | $DNSMASQ_SEARCH      |
+| --search-domains, -s           | Specify SEARCH domains (in lieu of /etc/resolv.conf) `domain[,domain]`        | -             | $DNSMASQ_SEARCH      |
 | --append-search-domains, -a    | Qualify queries with SEARCH domains                                           | False         | $DNSMASQ_APPEND      |
 | --rcache, -r                   | Capacity of the response cache (‘0‘ to disable cache)                         | 0             | $DNSMASQ_RCACHE      |
 | --rcache-ttl                   | TTL for entries in the response cache                                         | 60            | $DNSMASQ_RCACHE_TTL  |
