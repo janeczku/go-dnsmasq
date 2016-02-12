@@ -26,7 +26,7 @@ import (
 )
 
 // var Version string
-const Version = "0.9.8"
+const Version = "0.9.9"
 
 var (
 	nameservers   = []string{}
@@ -173,7 +173,7 @@ func main() {
 		if sd := c.String("search-domains"); sd != "" {
 			for _, domain := range strings.Split(sd, ",") {
 
-				if dns.CountLabel(domain) < 2 {
+				if dns.CountLabel(domain) < 1 {
 					log.Fatalf("This search domain is not a FQDN: %s", domain)
 				}
 				domain = dns.Fqdn(strings.ToLower(domain))
@@ -231,7 +231,7 @@ func main() {
 			}
 
 			for _, sdomain := range strings.Split(segments[0], ",") {
-				if dns.CountLabel(sdomain) < 2 {
+				if dns.CountLabel(sdomain) < 1 {
 					log.Fatalf("This stubzones domain is not a FQDN: %s", sdomain)
 				}
 				sdomain = dns.Fqdn(sdomain)

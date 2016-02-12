@@ -50,6 +50,7 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	var (
 		r       *dns.Msg
 		err     error
+		nsList  []string
 		nsIndex int // nameserver list index
 		sdIndex int // search list index
 		sdName  string // QNAME with search path
@@ -80,11 +81,23 @@ Redo:
 		req.Question[0] = dns.Question{sdName, req.Question[0].Qtype, req.Question[0].Qclass}
 	}
 
+	nsList = s.config.Nameservers
+
+	// Check whether the name matches a stub zone
+	for zone, nss := range *s.config.Stub {
+		if strings.HasSuffix(req.Question[0].Name, zone) {
+			nsList = nss
+			break
+		}
+	}
+
+	log.Debugf("Querying nameserver %s question %s", nsList[nsIndex], req.Question[0].Name)
+
 	switch tcp {
 	case false:
-		r, _, err = s.dnsUDPclient.Exchange(req, s.config.Nameservers[nsIndex])
+		r, _, err = s.dnsUDPclient.Exchange(req, nsList[nsIndex])
 	case true:
-		r, _, err = s.dnsTCPclient.Exchange(req, s.config.Nameservers[nsIndex])
+		r, _, err = s.dnsTCPclient.Exchange(req, nsList[nsIndex])
 	}
 	if err == nil {
 		if canSearch {
@@ -111,7 +124,7 @@ Redo:
 
 		if r.Rcode == dns.RcodeServerFailure || r.Rcode == dns.RcodeRefused {
 			// continue with next available nameserver
-			if (nsIndex + 1) < len(s.config.Nameservers) {
+			if (nsIndex + 1) < len(nsList) {
 				nsIndex++
 				doingSearch = false
 				goto Redo
@@ -138,10 +151,10 @@ Redo:
 		w.WriteMsg(r)
 		return r
 	} else {
-		log.Debugf("Error querying nameserver %s: %q", s.config.Nameservers[nsIndex], err)
+		log.Debugf("Error querying nameserver %s: %q", nsList[nsIndex], err)
 		// Got an error, this usually means the server did not respond
 		// Continue with next available nameserver
-		if (nsIndex + 1) < len(s.config.Nameservers) {
+		if (nsIndex + 1) < len(nsList) {
 			nsIndex++
 			doingSearch = false
 			goto Redo
