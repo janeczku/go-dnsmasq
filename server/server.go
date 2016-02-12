@@ -284,18 +284,6 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		return
 	}
 
-	// Forward queries matching stub zones
-	for zone, ns := range *s.config.Stub {
-		if strings.HasSuffix(name, zone) {
-			local = false
-			resp := s.ServeDNSStubForward(w, req, ns)
-			if resp != nil {
-				s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
-			}
-			return
-		}
-	}
-
 	// Forward all other queries
 	local = false
 	resp := s.ServeDNSForward(w, req)
