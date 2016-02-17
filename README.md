@@ -1,5 +1,5 @@
 # go-dnsmasq
-*Version 0.9.8*
+*Version 1.0.0*
 
 go-dnsmasq is a light weight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead.
 
