@@ -80,10 +80,12 @@ go-dnsmasq is available in two versions. The minimal version (`go-dnsmasq-min`) 
 ```
 
 #### Run as a Docker container
+[![ImageLayers Size](https://img.shields.io/imagelayers/image-size/janeczku/go-dnsmasq/latest.svg)]() [![Docker Pulls](https://img.shields.io/docker/pulls/janeczku/go-dnsmasq.svg)]()
+
+Docker Hub trusted builds [available](https://hub.docker.com/r/janeczku/go-dnsmasq/).
 
 ```sh
-docker run -d -e DNSMASQ_LISTEN=0.0.0.0 -p 53:53/udp -p 53:53 \
-   janeczku/go-dnsmasq
+docker run -d -p 53:53/udp -p 53:53 janeczku/go-dnsmasq:latest
 ```
 
-You can configure go-dnsmasq by passing the corresponding environmental variables with docker run `--env` flag.
+You can configure the container by passing the corresponding environmental variables with docker run's `--env` flag.
