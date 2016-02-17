@@ -26,7 +26,7 @@ import (
 )
 
 // var Version string
-const Version = "0.9.9"
+const Version = "1.0.0"
 
 var (
 	nameservers   = []string{}
@@ -39,13 +39,13 @@ var (
 var exitErr error
 
 func init() {
-	log.SetOutput(os.Stderr)
+	log.SetOutput(os.Stdout)
 }
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "go-dnsmasq"
-	app.Usage = "Lightweight caching DNS proxy for Docker containers"
+	app.Name = "go-dnsmasq-minimal"
+	app.Usage = "Lightweight DNS server/forwarder"
 	app.Version = Version
 	app.Author, app.Email = "", ""
 	app.Flags = []cli.Flag{
@@ -57,19 +57,19 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:   "default-resolver, d",
-			Usage:  "make go-dnsmasq the local primary nameserver (updates /etc/resolv.conf)",
+			Usage:  "make go-dnsmasq the host's primary nameserver (updates resolv.conf)",
 			EnvVar: "DNSMASQ_DEFAULT",
 		},
 		cli.StringFlag{
 			Name:   "nameservers, n",
 			Value:  "",
-			Usage:  "comma-separated list of name servers: ‘host[:port]‘",
+			Usage:  "comma-separated list of nameservers: ‘host[:port]‘",
 			EnvVar: "DNSMASQ_SERVERS",
 		},
 		cli.StringFlag{
 			Name:   "stubzones, z",
 			Value:  "",
-			Usage:  "domains to resolve using a specific nameserver: ‘fqdn[,fqdn]/host[:port]‘",
+			Usage:  "domains to resolve using a specific nameserver: ‘domain[,domain]/host[:port]‘",
 			EnvVar: "DNSMASQ_STUB",
 		},
 		cli.StringFlag{
@@ -87,12 +87,12 @@ func main() {
 		cli.StringFlag{
 			Name:   "search-domains, s",
 			Value:  "",
-			Usage:  "specify SEARCH domains taking precedence over /etc/resolv.conf: ‘fqdn[,fqdn]‘",
+			Usage:  "specify SEARCH domains (takes precedence over resolv.conf): ‘domain[,domain]‘",
 			EnvVar: "DNSMASQ_SEARCH",
 		},
 		cli.BoolFlag{
 			Name:   "append-search-domains, a",
-			Usage:  "enable suffixing single-label queries with SEARCH domains",
+			Usage:  "resolve queries by qualifying them with the search domains",
 			EnvVar: "DNSMASQ_APPEND",
 		},
 		cli.BoolFlag{
