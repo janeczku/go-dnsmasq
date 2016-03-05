@@ -12,19 +12,18 @@ import (
 	"github.com/janeczku/go-dnsmasq/dns"
 )
 
-// ServeDNSForward forwards a request to a nameservers and returns the response.
+// ServeDNSForward forwards a request to the nameserver and returns the response.
 func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	if s.config.NoRec || len(s.config.Nameservers) == 0 {
 		m := new(dns.Msg)
 		m.SetReply(req)
-		m.SetRcode(req, dns.RcodeServerFailure)
+		m.SetRcode(req, dns.RcodeRefused)
 		m.Authoritative = false
 		m.RecursionAvailable = false
 		if len(s.config.Nameservers) == 0 {
-			log.Debug("Can not forward query, no nameservers defined")
-			m.RecursionAvailable = true
+			log.Debug("Not forwarding query, no nameservers configured")
 		} else {
-			m.RecursionAvailable = false
+			log.Debug("Not forwarding query, recursive mode disabled")
 		}
 
 		w.WriteMsg(m)
@@ -33,15 +32,14 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 
 	name := req.Question[0].Name
 
-	if dns.CountLabel(name) < 2 || dns.CountLabel(name) < s.config.Ndots {
-		// Don't process single-label queries when searching is not enabled
+	if dns.CountLabel(name) < s.config.Ndots {
 		if !s.config.AppendDomain || len(s.config.SearchDomains) == 0 {
-			log.Debugf("Can not forward query, name too short: `%s'", name)
+			log.Debugf("Not forwarding query, name too short: `%s'", name)
 			m := new(dns.Msg)
 			m.SetReply(req)
-			m.SetRcode(req, dns.RcodeServerFailure)
+			m.SetRcode(req, dns.RcodeRefused)
 			m.Authoritative = false
-			m.RecursionAvailable = true
+			m.RecursionAvailable = false
 			w.WriteMsg(m)
 			return m
 		}
@@ -51,10 +49,10 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 		r       *dns.Msg
 		err     error
 		nsList  []string
-		nsIndex int // nameserver list index
-		sdIndex int // search list index
-		sdName  string // QNAME with search path
-		sdCname = new(dns.CNAME) // CNAME record returned when query resolved by searching
+		nsIndex int // Nameserver list index
+		sdIndex int // Search list index
+		sdName  string // QNAME suffixed with search path
+		sdCname = new(dns.CNAME) // CNAME record we include in replies for queries resolved by searching
 	)
 
 	tcp := isTCP(w)
@@ -68,7 +66,7 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 
 Redo:
 	if dns.CountLabel(name) < 2 {
-		// always qualify single-label names
+		// Always qualify single-label names
 		if !doingSearch && canSearch {
 			doingSearch = true
 			sdIndex = 0
@@ -101,7 +99,7 @@ Redo:
 	}
 	if err == nil {
 		if canSearch {
-			// replicate libc's getaddrinfo.c search logic
+			// Replicate libc's getaddrinfo.c search logic
 			switch {
 			case r.Rcode == dns.RcodeSuccess && len(r.Answer) == 0 && !r.MsgHdr.Truncated: // NODATA !Truncated
 				fallthrough
@@ -109,12 +107,12 @@ Redo:
 				fallthrough
 			case r.Rcode == dns.RcodeServerFailure: // SERVFAIL
 				if doingSearch && (sdIndex + 1) < len(s.config.SearchDomains) {
-					// continue searching
+					// Continue searching
 					sdIndex++
 					goto Redo
 				}
 				if !doingSearch {
-					// start searching
+					// Start searching
 					doingSearch = true
 					sdIndex = 0
 					goto Redo
@@ -123,7 +121,7 @@ Redo:
 		}
 
 		if r.Rcode == dns.RcodeServerFailure || r.Rcode == dns.RcodeRefused {
-			// continue with next available nameserver
+			// Continue with next available nameserver
 			if (nsIndex + 1) < len(nsList) {
 				nsIndex++
 				doingSearch = false
@@ -131,7 +129,7 @@ Redo:
 			}	
 		}
 
-		// We are done querying. Process the reply to return to the client.
+		// We are done querying. process the reply to return to the client.
 
 		if doingSearch {
 			// Insert cname record pointing name to name.searchdomain
@@ -151,7 +149,7 @@ Redo:
 		w.WriteMsg(r)
 		return r
 	} else {
-		log.Debugf("Error querying nameserver %s: %q", nsList[nsIndex], err)
+		log.Debugf("Error querying nameserver %s for qname %s: %q", nsList[nsIndex], name, err)
 		// Got an error, this usually means the server did not respond
 		// Continue with next available nameserver
 		if (nsIndex + 1) < len(nsList) {
@@ -162,7 +160,7 @@ Redo:
 	}
 
 	// If we got here it means forwarding failed
-	log.Errorf("Failure forwarding request %q", err)
+	log.Errorf("Failed to forward query for qname %s: %q", name, err)
 	m := new(dns.Msg)
 	m.SetReply(reqCopy)
 	m.SetRcode(reqCopy, dns.RcodeServerFailure)
@@ -181,7 +179,7 @@ func (s *server) ServeDNSReverse(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	if records, err := s.PTRRecords(req.Question[0]); err == nil && len(records) > 0 {
 		m.Answer = records
 		if err := w.WriteMsg(m); err != nil {
-			log.Errorf("Failure returning reply %q", err)
+			log.Errorf("Failed to send reply: %q", err)
 		}
 		return m
 	}

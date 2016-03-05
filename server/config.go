@@ -18,8 +18,6 @@ import (
 type Config struct {
 	// The ip:port go-dnsmasq should be listening on for incoming DNS requests.
 	DnsAddr string `json:"dns_addr,omitempty"`
-	// bind to port(s) activated by systemd. If set to true, this overrides DnsAddr.
-	Systemd bool `json:"systemd,omitempty"`
 	// Rewrite host's network config making go-dnsmasq the default resolver
 	DefaultResolver bool `json:"default_resolver,omitempty"`
 	// Domain to append to query names that are not FQDN
