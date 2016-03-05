@@ -1,5 +1,5 @@
 # go-dnsmasq
-*Version 1.0.0*
+*Version 1.0.1*
 
 go-dnsmasq is a light weight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead.
 
@@ -35,20 +35,20 @@ DNS queries are resolved in the style of the GNU libc resolver:
 | Flag                           | Description                                                                   | Default       | Environment vars     |
 | ------------------------------ | ----------------------------------------------------------------------------- | ------------- | -------------------- |
 | --listen, -l                   | Address to listen on  `host[:port]`                                           | 127.0.0.1:53  | $DNSMASQ_LISTEN      |
-| --default-resolver, -d         | Update resolv.conf and make go-dnsmasq the host's primary nameserver          | False         | $DNSMASQ_DEFAULT     |
-| --nameservers, -n              | Comma-separated list of nameservers `host[:port]`                             | -             | $DNSMASQ_SERVERS     |
-| --stubzones, -z                | Use different nameservers for specific domain `domain[,domain]/host[:port]`   | -             | $DNSMASQ_STUB        |
-| --hostsfile, -f                | Full path to a hostsfile                                                      | -             | $DNSMASQ_HOSTSFILE   |
-| --hostsfile-poll, -p           | How frequently to check hostsfile for changes (seconds, ‘0‘ to disable)       | 0             | $DNSMASQ_POLL        |
-| --search-domains, -s           | Specify SEARCH domains (in lieu of /etc/resolv.conf) `domain[,domain]`        | -             | $DNSMASQ_SEARCH      |
-| --append-search-domains, -a    | Qualify queries with SEARCH domains                                           | False         | $DNSMASQ_APPEND      |
+| --default-resolver, -d         | Update resolv.conf to make go-dnsmasq the host's nameserver                   | False         | $DNSMASQ_DEFAULT     |
+| --nameservers, -n              | Comma separated list of nameservers `host[:port]`                             | -             | $DNSMASQ_SERVERS     |
+| --stubzones, -z                | Use different nameservers for specific domains `domain[,domain]/host[:port]`  | -             | $DNSMASQ_STUB        |
+| --hostsfile, -f                | Path to a hostsfile (e.g. ‘/etc/hosts‘)                                       | -             | $DNSMASQ_HOSTSFILE   |
+| --hostsfile-poll, -p           | How frequently to poll hostsfile for changes (seconds, ‘0‘ to disable)        | 0             | $DNSMASQ_POLL        |
+| --search-domains, -s           | Specify search domains (overrides /etc/resolv.conf) `domain[,domain]`         | -             | $DNSMASQ_SEARCH      |
+| --append-search-domains, -a    | Resolve queries using search domains                                          | False         | $DNSMASQ_APPEND      |
 | --rcache, -r                   | Capacity of the response cache (‘0‘ to disable cache)                         | 0             | $DNSMASQ_RCACHE      |
 | --rcache-ttl                   | TTL for entries in the response cache                                         | 60            | $DNSMASQ_RCACHE_TTL  |
 | --no-rec                       | Disable recursion                                                             | False         | $DNSMASQ_NOREC       |
-| --round-robin                  | enable round robin of A/AAAA records                                          | False         | $DNSMASQ_RR          |
+| --round-robin                  | Enable round robin of A/AAAA records                                          | False         | $DNSMASQ_RR          |
 | --systemd                      | Bind to socket(s) activated by Systemd (ignores --listen)                     | False         | $DNSMASQ_SYSTEMD     |
 | --verbose                      | Enable verbose logging                                                        | False         | $DNSMASQ_VERBOSE     |
-| --syslog                       | Log to syslog                                                                 | False         | $DNSMASQ_SYSLOG      |
+| --syslog                       | Enable syslog logging                                                         | False         | $DNSMASQ_SYSLOG      |
 | --multithreading               | Enable multithreading                                                         | False         |                      |
 | --help, -h                     | Show help                                                                     |               |                      |
 | --version, -v                  | Print the version                                                             |               |                      |

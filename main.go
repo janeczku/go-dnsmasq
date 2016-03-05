@@ -27,7 +27,7 @@ import (
 )
 
 // var Version string
-const Version = "1.0.0"
+const Version = "1.0.1"
 
 var (
 	nameservers   = []string{}
@@ -53,89 +53,89 @@ func main() {
 		cli.StringFlag{
 			Name:   "listen, l",
 			Value:  "127.0.0.1:53",
-			Usage:  "listen address: ‘host[:port]‘",
+			Usage:  "Address to listen on `host[:port]`",
 			EnvVar: "DNSMASQ_LISTEN",
 		},
 		cli.BoolFlag{
 			Name:   "default-resolver, d",
-			Usage:  "make go-dnsmasq the host's primary nameserver (updates resolv.conf)",
+			Usage:  "Update resolv.conf to make go-dnsmasq the host's nameserver",
 			EnvVar: "DNSMASQ_DEFAULT",
 		},
 		cli.StringFlag{
 			Name:   "nameservers, n",
 			Value:  "",
-			Usage:  "comma-separated list of nameservers: ‘host[:port]‘",
+			Usage:  "Comma separated list of nameservers `host[:port]`",
 			EnvVar: "DNSMASQ_SERVERS",
 		},
 		cli.StringFlag{
 			Name:   "stubzones, z",
 			Value:  "",
-			Usage:  "domains to resolve using a specific nameserver: ‘domain[,domain]/host[:port]‘",
+			Usage:  "Use different nameservers for specific domains `domain[,domain]/host[:port]`",
 			EnvVar: "DNSMASQ_STUB",
 		},
 		cli.StringFlag{
 			Name:   "hostsfile, f",
 			Value:  "",
-			Usage:  "full path to hostsfile (e.g. ‘/etc/hosts‘)",
+			Usage:  "Path to a hostsfile (e.g. ‘/etc/hosts‘)",
 			EnvVar: "DNSMASQ_HOSTSFILE",
 		},
 		cli.IntFlag{
 			Name:   "hostsfile-poll, p",
 			Value:  0,
-			Usage:  "how frequently to poll hostsfile (in seconds, ‘0‘ to disable)",
+			Usage:  "How frequently to poll hostsfile for changes (seconds, ‘0‘ to disable)",
 			EnvVar: "DNSMASQ_POLL",
 		},
 		cli.StringFlag{
 			Name:   "search-domains, s",
 			Value:  "",
-			Usage:  "specify SEARCH domains (takes precedence over resolv.conf): ‘domain[,domain]‘",
+			Usage:  "Specify search domains (overrides /etc/resolv.conf) `domain[,domain]`",
 			EnvVar: "DNSMASQ_SEARCH",
 		},
 		cli.BoolFlag{
 			Name:   "append-search-domains, a",
-			Usage:  "resolve queries by qualifying them with the search domains",
+			Usage:  "Resolve queries using search domains",
 			EnvVar: "DNSMASQ_APPEND",
 		},
 		cli.IntFlag{
 			Name:   "rcache, r",
 			Value:  0,
-			Usage:  "capacity of the response cache (‘0‘ to disable caching)",
+			Usage:  "Capacity of the response cache (‘0‘ to disable cache)",
 			EnvVar: "DNSMASQ_RCACHE",
 		},
 		cli.IntFlag{
 			Name:   "rcache-ttl",
 			Value:  server.RCacheTtl,
-			Usage:  "TTL of entries in the response cache",
+			Usage:  "TTL for entries in the response cache",
 			EnvVar: "DNSMASQ_RCACHE_TTL",
 		},
 		cli.BoolFlag{
 			Name:   "no-rec",
-			Usage:  "disable recursion",
+			Usage:  "Disable recursion",
 			EnvVar: "DNSMASQ_NOREC",
 		},
 		cli.BoolFlag{
 			Name:   "round-robin",
-			Usage:  "enable round robin of A/AAAA replies",
+			Usage:  "Enable round robin of A/AAAA records",
 			EnvVar: "DNSMASQ_RR",
 		},
 		cli.BoolFlag{
 			Name:   "systemd",
-			Usage:  "bind to socket(s) activated by systemd (ignores --listen)",
+			Usage:  "Bind to socket(s) activated by Systemd (ignores --listen)",
 			EnvVar: "DNSMASQ_SYSTEMD",
 		},
 		cli.BoolFlag{
 			Name:   "verbose",
-			Usage:  "enable verbose logging",
+			Usage:  "Enable verbose logging",
 			EnvVar: "DNSMASQ_VERBOSE",
 		},
 		cli.BoolFlag{
 			Name:   "syslog",
-			Usage:  "enable syslog logging",
+			Usage:  "Enable syslog logging",
 			EnvVar: "DNSMASQ_SYSLOG",
 		},
 		cli.BoolFlag{
 			Name:   "multithreading",
-			Usage:  "enable multithreading (num physical CPU cores)",
+			Usage:  "Enable multithreading",
 			EnvVar: "DNSMASQ_MULTITHREADING",
 		},
 	}
