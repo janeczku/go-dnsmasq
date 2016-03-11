@@ -17,15 +17,20 @@ import (
 type hostlist []*hostname
 
 type hostname struct {
-	domain string
-	ip     net.IP
-	ipv6   bool
+	domain   string
+	ip       net.IP
+	ipv6     bool
+	wildcard bool
 }
 
 // newHostlist creates a hostlist by parsing a file
 func newHostlist(data []byte) *hostlist {
+	return newHostlistString(string(data));
+}
+
+func newHostlistString(data string) *hostlist {
 	hostlist := hostlist{}
-	for _, v := range strings.Split(string(data), "\n") {
+	for _, v := range strings.Split(data, "\n") {
 		for _, hostname := range parseLine(v) {
 			err := hostlist.add(hostname)
 			if err != nil {
@@ -36,8 +41,56 @@ func newHostlist(data []byte) *hostlist {
 	return &hostlist
 }
 
+func (h *hostname) Equal(hostnamev *hostname) bool {
+	if (h.wildcard != hostnamev.wildcard || h.ipv6 != hostnamev.ipv6) {
+		return false
+	}
+	if (!h.ip.Equal(hostnamev.ip)) {
+		return false
+	}
+	if (h.domain != hostnamev.domain) {
+		return false
+	}
+	return true
+}
+
+// return first match
+func (h *hostlist) FindHost(name string) (addr net.IP) {
+	var ips []net.IP;
+	ips = h.FindHosts(name)
+	if len(ips) > 0 {
+		addr = ips[0];
+	}
+	return
+}
+
+// return exact matches, if existing -> else, return wildcard
+func (h *hostlist) FindHosts(name string) (addrs []net.IP) {
+	for _, hostname := range *h {
+		if hostname.wildcard == false && hostname.domain == name {
+			addrs = append(addrs, hostname.ip)
+		}
+	}
+
+	if len(addrs) == 0 {
+		for _, hostname := range *h {
+			if hostname.wildcard == true && len(hostname.domain) < len(name) {
+				if name[len(name)-len(hostname.domain):] == hostname.domain {
+					var left string;
+					left = name[0:len(name)-len(hostname.domain)]
+					if !strings.Contains(left, ".") {
+						addrs = append(addrs, hostname.ip)
+					}
+				}
+			}
+		}
+	}
+
+	return
+}
+
 func (h *hostlist) add(hostnamev *hostname) error {
-	hostname := newHostname(hostnamev.domain, hostnamev.ip, hostnamev.ipv6)
+	hostname := newHostname(hostnamev.domain, hostnamev.ip, hostnamev.ipv6, hostnamev.wildcard)
 	for _, found := range *h {
 		if found.domain == hostname.domain && found.ip.Equal(hostname.ip) {
 			return fmt.Errorf("Duplicate hostname entry for %s -> %s",
@@ -49,9 +102,9 @@ func (h *hostlist) add(hostnamev *hostname) error {
 }
 
 // newHostname creates a new Hostname struct
-func newHostname(domain string, ip net.IP, ipv6 bool) (host *hostname) {
+func newHostname(domain string, ip net.IP, ipv6 bool, wildcard bool) (host *hostname) {
 	domain = strings.ToLower(domain)
-	host = &hostname{domain, ip, ipv6}
+	host = &hostname{domain, ip, ipv6, wildcard}
 	return
 }
 
@@ -114,8 +167,14 @@ func parseLine(line string) hostlist {
 		return hostnames
 	}
 
+	var isWildcard bool
 	for _, v := range domains {
-		hostname := newHostname(v, ip, isIPv6)
+		isWildcard = false
+		if v[0:1] == "*" {
+			v = v[1:]
+			isWildcard = true
+		}
+		hostname := newHostname(v, ip, isIPv6, isWildcard)
 		hostnames = append(hostnames, hostname)
 	}
 
