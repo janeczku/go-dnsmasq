@@ -104,6 +104,17 @@ func TestParseLine(t *testing.T) {
 		t.Error("Expected to find zero hostnames when line is commented out")
 	}
 
+	var err error;
+	err = hosts.add(newHostname("aaa", net.ParseIP("192.168.0.1"), false, false));
+	if err != nil {
+		t.Error("Did not expect error on first hostname");
+	}
+	err = hosts.add(newHostname("aaa", net.ParseIP("192.168.0.1"), false, false));
+	if err == nil {
+		t.Error("Expected error on duplicate host");
+	}
+	fmt.Println(err);
+
 	// Not Commented stuff
 	hosts = parseLine("192.168.0.1 broadcasthost test.domain.com	domain.com")
 	if !hosts.Contains(newHostname("broadcasthost", net.ParseIP("192.168.0.1"), false, false)) ||
@@ -115,7 +126,7 @@ func TestParseLine(t *testing.T) {
 
 	// Wildcard stuff
 	hosts = parseLine("192.168.0.1 *.domain.com mail.domain.com serenity")
-	if !hosts.Contains(newHostname(".domain.com", net.ParseIP("192.168.0.1"), false, true)) ||
+	if !hosts.Contains(newHostname("domain.com", net.ParseIP("192.168.0.1"), false, true)) ||
 		!hosts.Contains(newHostname("mail.domain.com", net.ParseIP("192.168.0.1"), false, false)) ||
 		!hosts.Contains(newHostname("serenity", net.ParseIP("192.168.0.1"), false, false)) ||
 		len(hosts) != 3 {
