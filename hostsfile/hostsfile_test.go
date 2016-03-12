@@ -113,7 +113,6 @@ func TestParseLine(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error on duplicate host");
 	}
-	fmt.Println(err);
 
 	// Not Commented stuff
 	hosts = parseLine("192.168.0.1 broadcasthost test.domain.com	domain.com")
