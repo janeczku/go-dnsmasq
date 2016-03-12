@@ -1,7 +1,7 @@
 # go-dnsmasq
 *Version 1.0.2*
 
-go-dnsmasq is a light weight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead.
+go-dnsmasq is a lightweight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead.
 
 ### Application examples:
 
@@ -13,7 +13,7 @@ go-dnsmasq is a light weight (1.2 MB) DNS caching server/forwarder with minimal 
 
 * Automatically set upstream `nameservers` and `search` domains from resolv.conf
 * Insert itself into the host's /etc/resolv.conf on start
-* Serve static A/AAAA records from a hostsfile
+* Serve static A/AAAA records from a hosts file
 * Provide DNS response caching
 * Replicate the `search` domain treatment not supported by `musl-libc` based Linux distributions
 * Supports virtually unlimited number of `search` paths and `nameservers` ([related Kubernetes article](https://github.com/kubernetes/kubernetes/tree/master/cluster/addons/dns#known-issues))
@@ -38,8 +38,8 @@ DNS queries are resolved in the style of the GNU libc resolver:
 | --default-resolver, -d         | Update resolv.conf to make go-dnsmasq the host's nameserver                   | False         | $DNSMASQ_DEFAULT     |
 | --nameservers, -n              | Comma separated list of nameservers `host[:port]`                             | -             | $DNSMASQ_SERVERS     |
 | --stubzones, -z                | Use different nameservers for specific domains `domain[,domain]/host[:port]`  | -             | $DNSMASQ_STUB        |
-| --hostsfile, -f                | Path to a hostsfile (e.g. ‘/etc/hosts‘)                                       | -             | $DNSMASQ_HOSTSFILE   |
-| --hostsfile-poll, -p           | How frequently to poll hostsfile for changes (seconds, ‘0‘ to disable)        | 0             | $DNSMASQ_POLL        |
+| --hostsfile, -f                | Path to a hosts file (e.g. ‘/etc/hosts‘)                                       | -             | $DNSMASQ_HOSTSFILE   |
+| --hostsfile-poll, -p           | How frequently to poll hosts file for changes (seconds, ‘0‘ to disable)        | 0             | $DNSMASQ_POLL        |
 | --search-domains, -s           | Specify search domains (overrides /etc/resolv.conf) `domain[,domain]`         | -             | $DNSMASQ_SEARCH      |
 | --append-search-domains, -a    | Resolve queries using search domains                                          | False         | $DNSMASQ_APPEND      |
 | --rcache, -r                   | Capacity of the response cache (‘0‘ to disable cache)                         | 0             | $DNSMASQ_RCACHE      |
@@ -69,7 +69,7 @@ Set to your StatHat account email address
 
 ### Usage
 
-#### Run from the commandline
+#### Run from the command line
 
 Download the binary for your OS from the [releases page](https://github.com/janeczku/go-dnsmasq/releases/latest).    
 
@@ -91,7 +91,7 @@ docker run -d -p 53:53/udp -p 53:53 janeczku/go-dnsmasq:latest
 You can configure the container by passing the corresponding environmental variables with docker run's `--env` flag.
 
 #### Serving A/AAAA records from a hosts file
-The `--hostsfile` parameter expects a standard plain text [hosts file](https://en.wikipedia.org/wiki/Hosts_(file)) with the only difference being that a wildcard `*` in the left-most label of hostnames is allowed. Wildcard entries will match any subdomain that is not explicitely defined.
+The `--hostsfile` parameter expects a standard plain text [hosts file](https://en.wikipedia.org/wiki/Hosts_(file)) with the only difference being that a wildcard `*` in the left-most label of hostnames is allowed. Wildcard entries will match any subdomain that is not explicitly defined.
 For example, given a hosts file with the following content:
 
 ```
