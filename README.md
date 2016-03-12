@@ -3,6 +3,8 @@
 
 go-dnsmasq is a lightweight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead.
 
+[![Docker Pulls](https://img.shields.io/docker/pulls/janeczku/go-dnsmasq.svg)](https://hub.docker.com/r/janeczku/go-dnsmasq/)
+
 ### Application examples:
 
 - Caching DNS server/forwarder in a local network
@@ -80,15 +82,14 @@ go-dnsmasq is available in two versions. The minimal version (`go-dnsmasq-min`) 
 ```
 
 #### Run as a Docker container
-[![ImageLayers Size](https://img.shields.io/imagelayers/image-size/janeczku/go-dnsmasq/latest.svg)]() [![Docker Pulls](https://img.shields.io/docker/pulls/janeczku/go-dnsmasq.svg)]()
 
-Docker Hub trusted builds [available](https://hub.docker.com/r/janeczku/go-dnsmasq/).
+Docker Hub trusted builds are [available](https://hub.docker.com/r/janeczku/go-dnsmasq/).
 
 ```sh
 docker run -d -p 53:53/udp -p 53:53 janeczku/go-dnsmasq:latest
 ```
 
-You can configure the container by passing the corresponding environmental variables with docker run's `--env` flag.
+You can pass go-dnsmasq configuration parameters by setting the corresponding environmental variables with Docker's `-e` flag.
 
 #### Serving A/AAAA records from a hosts file
 The `--hostsfile` parameter expects a standard plain text [hosts file](https://en.wikipedia.org/wiki/Hosts_(file)) with the only difference being that a wildcard `*` in the left-most label of hostnames is allowed. Wildcard entries will match any subdomain that is not explicitly defined.
