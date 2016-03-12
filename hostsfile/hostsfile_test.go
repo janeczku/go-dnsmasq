@@ -167,22 +167,18 @@ func TestParseLine(t *testing.T) {
 		t.Error("Expected to find rtvslo.si ipv6, two hosts")
 	}
 
-	/* the following all fails since the addressses are link-local */
-
-	/*
-	// Ipv6 stuff
-	hosts = parseLine("::1             localhost")
-	if !hosts.Contains(newHostname("localhost", net.ParseIP("::1"), true, false)) ||
+	// Loopback addresses
+	hosts = parseLine("::1 blocked.domain")
+	if !hosts.Contains(newHostname("blocked.domain", net.ParseIP("::1"), true, false)) ||
 		len(hosts) != 1 {
-		t.Error("Expected to find localhost ipv6")
+		t.Error("Expected to find blocked.domain ipv6")
 	}
 
-	hosts = parseLine("ff02::1 ip6-allnodes")
-	if !hosts.Contains(newHostname("ip6-allnodes", net.ParseIP("ff02::1"), true, false)) ||
+	hosts = parseLine("127.0.0.1 blocked.domain")
+	if !hosts.Contains(newHostname("blocked.domain", net.ParseIP("127.0.0.1"), false, false)) ||
 		len(hosts) != 1 {
-		t.Error("Expected to find ip6-allnodes ipv6")
+		t.Error("Expected to find blocked.domain ipv4")
 	}
-	*/
 }
 
 func TestHostname(t *testing.T) {
