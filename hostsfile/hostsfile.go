@@ -67,13 +67,7 @@ func (h *Hostsfile) FindHosts(name string) (addrs []net.IP, err error) {
 	name = strings.TrimSuffix(name, ".")
 	h.hostMutex.RLock()
 	defer h.hostMutex.RUnlock()
-
-	for _, hostname := range *h.hosts {
-		if hostname.domain == name {
-			addrs = append(addrs, hostname.ip)
-		}
-	}
-
+	addrs = h.hosts.FindHosts(name);
 	return
 }
 

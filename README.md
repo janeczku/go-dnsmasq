@@ -1,5 +1,5 @@
 # go-dnsmasq
-*Version 1.0.1*
+*Version 1.0.2*
 
 go-dnsmasq is a light weight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead.
 
@@ -89,3 +89,14 @@ docker run -d -p 53:53/udp -p 53:53 janeczku/go-dnsmasq:latest
 ```
 
 You can configure the container by passing the corresponding environmental variables with docker run's `--env` flag.
+
+#### Serving A/AAAA records from a hosts file
+The `--hostsfile` parameter expects a standard plain text [hosts file](https://en.wikipedia.org/wiki/Hosts_(file)) with the only difference being that a wildcard `*` in the left-most label of hostnames is allowed. Wildcard entries will match any subdomain that is not explicitely defined.
+For example, given a hosts file with the following content:
+
+```
+192.168.0.1 db1.db.local
+192.168.0.2 *.db.local
+```
+
+Queries for `db2.db.local` would be answered with an A record pointing to 192.168.0.2, while queries for `db1.db.local` would yield an A record pointing to 192.168.0.1.
