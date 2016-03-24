@@ -27,7 +27,7 @@ import (
 )
 
 // var Version string
-const Version = "1.0.2"
+const Version = "1.0.3"
 
 var (
 	nameservers   = []string{}
@@ -112,6 +112,12 @@ func main() {
 			Name:   "no-rec",
 			Usage:  "Disable recursion",
 			EnvVar: "DNSMASQ_NOREC",
+		},
+		cli.IntFlag{
+			Name:   "ndots",
+			Value:  2,
+			Usage:  "Minimum number of labels a name must have before the query is forwarded",
+			EnvVar: "DNSMASQ_NDOTS",
 		},
 		cli.BoolFlag{
 			Name:   "round-robin",
@@ -213,6 +219,7 @@ func main() {
 			PollInterval:    c.Int("hostsfile-poll"),
 			RoundRobin:      c.Bool("round-robin"),
 			NoRec:           c.Bool("no-rec"),
+			Ndots:           c.Int("ndots"),
 			ReadTimeout:     0,
 			RCache:          c.Int("rcache"),
 			RCacheTtl:       c.Int("rcache-ttl"),
