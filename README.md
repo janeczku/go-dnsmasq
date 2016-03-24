@@ -40,13 +40,14 @@ DNS queries are resolved in the style of the GNU libc resolver:
 | --default-resolver, -d         | Update resolv.conf to make go-dnsmasq the host's nameserver                   | False         | $DNSMASQ_DEFAULT     |
 | --nameservers, -n              | Comma separated list of nameservers `host[:port]`                             | -             | $DNSMASQ_SERVERS     |
 | --stubzones, -z                | Use different nameservers for specific domains `domain[,domain]/host[:port]`  | -             | $DNSMASQ_STUB        |
-| --hostsfile, -f                | Path to a hosts file (e.g. ‘/etc/hosts‘)                                       | -             | $DNSMASQ_HOSTSFILE   |
-| --hostsfile-poll, -p           | How frequently to poll hosts file for changes (seconds, ‘0‘ to disable)        | 0             | $DNSMASQ_POLL        |
+| --hostsfile, -f                | Path to a hosts file (e.g. ‘/etc/hosts‘)                                      | -             | $DNSMASQ_HOSTSFILE   |
+| --hostsfile-poll, -p           | How frequently to poll hosts file for changes (seconds, ‘0‘ to disable)       | 0             | $DNSMASQ_POLL        |
 | --search-domains, -s           | Specify search domains (overrides /etc/resolv.conf) `domain[,domain]`         | -             | $DNSMASQ_SEARCH      |
 | --append-search-domains, -a    | Resolve queries using search domains                                          | False         | $DNSMASQ_APPEND      |
 | --rcache, -r                   | Capacity of the response cache (‘0‘ to disable cache)                         | 0             | $DNSMASQ_RCACHE      |
 | --rcache-ttl                   | TTL for entries in the response cache                                         | 60            | $DNSMASQ_RCACHE_TTL  |
 | --no-rec                       | Disable recursion                                                             | False         | $DNSMASQ_NOREC       |
+| --ndots                        | Minimum number of labels a name must have before the query is forwarded       | 2             | $DNSMASQ_NDOTS       |
 | --round-robin                  | Enable round robin of A/AAAA records                                          | False         | $DNSMASQ_RR          |
 | --systemd                      | Bind to socket(s) activated by Systemd (ignores --listen)                     | False         | $DNSMASQ_SYSTEMD     |
 | --verbose                      | Enable verbose logging                                                        | False         | $DNSMASQ_VERBOSE     |

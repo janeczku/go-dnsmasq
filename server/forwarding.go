@@ -65,8 +65,7 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	}
 
 Redo:
-	if dns.CountLabel(name) < 2 {
-		// Always qualify single-label names
+	if dns.CountLabel(name) < s.config.Ndots {
 		if !doingSearch && canSearch {
 			doingSearch = true
 			sdIndex = 0
