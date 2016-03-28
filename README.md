@@ -1,7 +1,7 @@
 # go-dnsmasq
 [![Docker Pulls](https://img.shields.io/docker/pulls/janeczku/go-dnsmasq.svg)](https://hub.docker.com/r/janeczku/go-dnsmasq/)
 
-*Version 1.0.2*
+*Version 1.0.4*
 
 go-dnsmasq is a lightweight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead.
 
