@@ -17,19 +17,20 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-const RESOLVCONF_COMMENT = "# added by go-dnsmasq"
+const RESOLVCONF_COMMENT_ADD = "# added by go-dnsmasq"
+const RESOLVCONF_COMMENT_OUT = "# disabled by go-dnsmasq #"
 const RESOLVCONF_PATH = "/etc/resolv.conf"
 
-var resolvConfPattern = regexp.MustCompile("(?m:^.*" + regexp.QuoteMeta(RESOLVCONF_COMMENT) + ")(?:$|\n)")
+var resolvConfPattern = regexp.MustCompile("(?m:^.*" + regexp.QuoteMeta(RESOLVCONF_COMMENT_ADD) + ")(?:$|\n)")
 
 func StoreAddress(address string) error {
 	log.Debugf("Configuring nameserver in /etc/resolv.conf")
-	resolveConfEntry := fmt.Sprintf("nameserver %s %s\n", address, RESOLVCONF_COMMENT)
+	resolveConfEntry := fmt.Sprintf("nameserver %s %s\n", address, RESOLVCONF_COMMENT_ADD)
 	return updateResolvConf(resolveConfEntry, RESOLVCONF_PATH)
 }
 
 func Clean() {
-	log.Debugf("Restoring /etc/resolv.conf")
+	log.Info("Restoring /etc/resolv.conf")
 	updateResolvConf("", RESOLVCONF_PATH)
 }
 
@@ -57,19 +58,19 @@ func updateResolvConf(insert, path string) error {
 
 	lines := strings.SplitAfter(string(orig), "\n")
 	for _, line := range lines {
-		// if file ends in a newline, skip empty string from splitting
-		if line == "" {
-			continue
-		}
-
-		// only comment out name servers
-		if strings.Contains(strings.ToLower(line), "nameserver") {
-			if insert == "" {
-				line = strings.TrimLeft(line, "# ")
-			} else {
-				line = "# " + line
+		switch insert {
+		case "":
+			// Uncomment lines we commented
+			if strings.Contains(line, RESOLVCONF_COMMENT_OUT) {
+				line = strings.Replace(line, RESOLVCONF_COMMENT_OUT, "", -1)
+				line = strings.TrimLeft(line, " ")
 			}
-		}
+		default:
+			// Comment out active nameservers only
+			if strings.HasPrefix(strings.ToLower(strings.TrimSpace(line)), "nameserver") {
+				line = fmt.Sprintf("%s %s", RESOLVCONF_COMMENT_OUT, line)
+			}
+		}			
 
 		if _, err = f.WriteString(line); err != nil {
 			return err

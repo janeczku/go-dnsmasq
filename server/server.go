@@ -53,7 +53,7 @@ func (s *server) Run() error {
 	mux.Handle(".", s)
 
 	dnsReadyMsg := func(addr, net string) {
-		log.Infof("Ready for queries on %s://%s [rcache %d] Nameservers: %v", net, addr, s.config.RCache, s.config.Nameservers)
+		log.Infof("Ready for queries on %s://%s [rcache capacity %d]", net, addr, s.config.RCache)
 	}
 
 	if s.config.Systemd {
