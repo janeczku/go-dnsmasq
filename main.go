@@ -131,7 +131,7 @@ func main() {
 		exitReason := make(chan error)
 		go func() {
 			c := make(chan os.Signal, 1)
-			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 			sig := <-c
 			log.Infoln("Application exit requested by signal:", sig)
 			exitReason <- nil
@@ -154,7 +154,7 @@ func main() {
 				log.AddHook(hook)
 			}
 		} else {
-			log.SetFormatter(&log.TextFormatter{DisableTimestamp: true})
+			log.SetFormatter(&log.TextFormatter{})
 		}
 
 		if ns := c.String("nameservers"); ns != "" {
@@ -242,9 +242,10 @@ func main() {
 			config.Stub = &stubmap
 		}
 
-		log.Infof("Starting go-dnsmasq server %s ...", Version)
+		log.Infof("Starting go-dnsmasq server %s", Version)
+		log.Infof("Upstream nameservers: %v", config.Nameservers)
 		if config.AppendDomain {
-			log.Infof("Search domains in use: %v", config.SearchDomains)
+			log.Infof("Search domains: %v", config.SearchDomains)
 		}
 
 		hf, err := hosts.NewHostsfile(config.Hostsfile, &hosts.Config{
