@@ -32,7 +32,6 @@ const Version = "1.0.4"
 var (
 	nameservers   = []string{}
 	searchDomains = []string{}
-	stubzones     = ""
 	hostPort      = ""
 	listen        = ""
 )
@@ -67,9 +66,9 @@ func main() {
 			Usage:  "Comma separated list of nameservers `host[:port]`",
 			EnvVar: "DNSMASQ_SERVERS",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:   "stubzones, z",
-			Value:  "",
+			Value:  &cli.StringSlice{},
 			Usage:  "Use different nameservers for specific domains `domain[,domain]/host[:port]`",
 			EnvVar: "DNSMASQ_STUB",
 		},
@@ -236,30 +235,31 @@ func main() {
 			}
 		}
 
-		if stubzones = c.String("stubzones"); stubzones != "" {
+		if stubzones := c.StringSlice("stubzones"); len(stubzones) > 0 {
 			stubmap := make(map[string][]string)
-			segments := strings.Split(stubzones, "/")
-			if len(segments) != 2 || len(segments[0]) == 0 || len(segments[1]) == 0 {
-				log.Fatalf("The --stubzones argument is invalid")
-			}
-
-			hostPort = segments[1]
-			if !strings.Contains(hostPort, ":") {
-				hostPort += ":53"
-			}
-
-			if err := validateHostPort(hostPort); err != nil {
-				log.Fatalf("This stubzones server address invalid: %s", err)
-			}
-
-			for _, sdomain := range strings.Split(segments[0], ",") {
-				if dns.CountLabel(sdomain) < 1 {
-					log.Fatalf("This stubzones domain is not a FQDN: %s", sdomain)
+			for _, stubzone := range stubzones {
+				segments := strings.Split(stubzone, "/")
+				if len(segments) != 2 || len(segments[0]) == 0 || len(segments[1]) == 0 {
+					log.Fatalf("The --stubzones argument is invalid")
 				}
-				sdomain = dns.Fqdn(sdomain)
-				stubmap[sdomain] = append(stubmap[sdomain], hostPort)
-			}
 
+				hostPort = segments[1]
+				if !strings.Contains(hostPort, ":") {
+					hostPort += ":53"
+				}
+
+				if err := validateHostPort(hostPort); err != nil {
+					log.Fatalf("This stubzones server address invalid: %s", err)
+				}
+
+				for _, sdomain := range strings.Split(segments[0], ",") {
+					if dns.CountLabel(sdomain) < 1 {
+						log.Fatalf("This stubzones domain is not a FQDN: %s", sdomain)
+					}
+					sdomain = dns.Fqdn(sdomain)
+					stubmap[sdomain] = append(stubmap[sdomain], hostPort)
+				}
+			}
 			config.Stub = &stubmap
 		}
 
