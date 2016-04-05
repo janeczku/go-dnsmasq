@@ -26,7 +26,7 @@ import (
 )
 
 // var Version string
-const Version = "1.0.4"
+const Version = "1.0.5"
 
 var (
 	nameservers   = []string{}
@@ -101,9 +101,15 @@ func main() {
 			EnvVar: "DNSMASQ_NOREC",
 		},
 		cli.IntFlag{
+			Name:   "fwd-ndots",
+			Value:  1,
+			Usage:  "Minimum number of dots a name must have before the query is forwarded",
+			EnvVar: "DNSMASQ_FWD_NDOTS",
+		},
+		cli.IntFlag{
 			Name:   "ndots",
-			Value:  2,
-			Usage:  "Minimum number of labels a name must have before the query is forwarded",
+			Value:  1,
+			Usage:  "Number of dots a name must have before an initial absolute query will be made (defaults to resolv.conf ndots)",
 			EnvVar: "DNSMASQ_NDOTS",
 		},
 		cli.BoolFlag{
@@ -159,12 +165,14 @@ func main() {
 
 		if ns := c.String("nameservers"); ns != "" {
 			for _, hostPort := range strings.Split(ns, ",") {
-				if !strings.Contains(hostPort, ":") {
+				hostPort = strings.TrimSpace(hostPort)
+				if strings.HasSuffix(hostPort, "]") {
+					hostPort += ":53"
+				} else if !strings.Contains(hostPort, ":") {
 					hostPort += ":53"
 				}
-
 				if err := validateHostPort(hostPort); err != nil {
-					log.Fatalf("This nameserver is invalid: %s", err)
+					log.Fatalf("Nameserver is invalid: %s", err)
 				}
 
 				nameservers = append(nameservers, hostPort)
@@ -173,21 +181,24 @@ func main() {
 
 		if sd := c.String("search-domains"); sd != "" {
 			for _, domain := range strings.Split(sd, ",") {
-
-				if dns.CountLabel(domain) < 1 {
-					log.Fatalf("This search domain is not a FQDN: %s", domain)
+				if dns.CountLabel(domain) < 2 {
+					log.Fatalf("Search domain must have at least one dot in name: %s", domain)
 				}
+				domain = strings.TrimSpace(domain)
 				domain = dns.Fqdn(strings.ToLower(domain))
 				searchDomains = append(searchDomains, domain)
 			}
 		}
 
-		if listen = c.String("listen"); !strings.Contains(listen, ":") {
+		listen = c.String("listen")
+		if strings.HasSuffix(listen, "]") {
+			listen += ":53"
+		} else if !strings.Contains(listen, ":") {
 			listen += ":53"
 		}
 
 		if err := validateHostPort(listen); err != nil {
-			log.Fatalf("The listen address is invalid: %s", err)
+			log.Fatalf("Listen address is invalid: %s", err)
 		}
 
 		config := &server.Config{
@@ -200,19 +211,20 @@ func main() {
 			PollInterval:    c.Int("hostsfile-poll"),
 			RoundRobin:      c.Bool("round-robin"),
 			NoRec:           c.Bool("no-rec"),
+			FwdNdots:        c.Int("fwd-ndots"),
 			Ndots:           c.Int("ndots"),
 			ReadTimeout:     0,
 			Verbose:         c.Bool("verbose"),
 		}
 
-		if err := server.SetDefaults(config); err != nil {
-			if !config.NoRec && len(config.Nameservers) == 0 {
-				log.Fatalf("No nameservers found in resolv.conf and --nameservers option not supplied: %s", err)
-			} else if config.AppendDomain && len(config.SearchDomains) == 0 {
-				log.Fatalf("No search domains found in resolv.conf and --search-domains option not supplied: %s", err)
-			} else {
-				log.Warnf("Error parsing resolv.conf: %s", err)
+		if err := server.ResolvConf(config, c); err != nil {
+			if !os.IsNotExist(err) {
+				log.Warnf("Error parsing resolv.conf: %s", err.Error())
 			}
+		}
+
+		if err := server.CheckConfig(config); err != nil {
+			log.Fatal(err.Error())
 		}
 
 		if stubzones = c.String("stubzones"); stubzones != "" {
@@ -223,7 +235,10 @@ func main() {
 			}
 
 			hostPort = segments[1]
-			if !strings.Contains(hostPort, ":") {
+			hostPort = strings.TrimSpace(hostPort)
+			if strings.HasSuffix(hostPort, "]") {
+				hostPort += ":53"
+			} else if !strings.Contains(hostPort, ":") {
 				hostPort += ":53"
 			}
 
@@ -235,6 +250,7 @@ func main() {
 				if dns.CountLabel(sdomain) < 1 {
 					log.Fatalf("This stubzones domain is not a FQDN: %s", sdomain)
 				}
+				sdomain = strings.TrimSpace(sdomain)
 				sdomain = dns.Fqdn(sdomain)
 				stubmap[sdomain] = append(stubmap[sdomain], hostPort)
 			}
