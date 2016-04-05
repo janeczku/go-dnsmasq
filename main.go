@@ -31,7 +31,6 @@ const Version = "1.0.5"
 var (
 	nameservers   = []string{}
 	searchDomains = []string{}
-	stubzones     = ""
 	hostPort      = ""
 	listen        = ""
 )
@@ -63,13 +62,12 @@ func main() {
 		cli.StringFlag{
 			Name:   "nameservers, n",
 			Value:  "",
-			Usage:  "Comma separated list of nameservers `host[:port]`",
+			Usage:  "Comma delimited list of nameservers `host[:port]` (defaults to /etc/resolv.conf)",
 			EnvVar: "DNSMASQ_SERVERS",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:   "stubzones, z",
-			Value:  "",
-			Usage:  "Use different nameservers for specific domains `domain[,domain]/host[:port]`",
+			Usage:  "Use a different nameservers for specific domains. Flag can be passed multiple times. `domain[,domain]/host[:port]`",
 			EnvVar: "DNSMASQ_STUB",
 		},
 		cli.StringFlag{
@@ -87,7 +85,7 @@ func main() {
 		cli.StringFlag{
 			Name:   "search-domains, s",
 			Value:  "",
-			Usage:  "Specify search domains (overrides /etc/resolv.conf) `domain[,domain]`",
+			Usage:  "Comma delimited list of search domains `domain[,domain]` (defaults to /etc/resolv.conf)",
 			EnvVar: "DNSMASQ_SEARCH",
 		},
 		cli.BoolFlag{
@@ -109,7 +107,7 @@ func main() {
 		cli.IntFlag{
 			Name:   "ndots",
 			Value:  1,
-			Usage:  "Number of dots a name must have before an initial absolute query will be made (defaults to resolv.conf ndots)",
+			Usage:  "Number of dots a name must have before an initial absolute query will be made (defaults to /etc/resolv.conf)",
 			EnvVar: "DNSMASQ_NDOTS",
 		},
 		cli.BoolFlag{
@@ -227,32 +225,34 @@ func main() {
 			log.Fatal(err.Error())
 		}
 
-		if stubzones = c.String("stubzones"); stubzones != "" {
+		if stubzones := c.StringSlice("stubzones"); len(stubzones) > 0 {
 			stubmap := make(map[string][]string)
-			segments := strings.Split(stubzones, "/")
-			if len(segments) != 2 || len(segments[0]) == 0 || len(segments[1]) == 0 {
-				log.Fatalf("The --stubzones argument is invalid")
-			}
-
-			hostPort = segments[1]
-			hostPort = strings.TrimSpace(hostPort)
-			if strings.HasSuffix(hostPort, "]") {
-				hostPort += ":53"
-			} else if !strings.Contains(hostPort, ":") {
-				hostPort += ":53"
-			}
-
-			if err := validateHostPort(hostPort); err != nil {
-				log.Fatalf("This stubzones server address invalid: %s", err)
-			}
-
-			for _, sdomain := range strings.Split(segments[0], ",") {
-				if dns.CountLabel(sdomain) < 1 {
-					log.Fatalf("This stubzones domain is not a FQDN: %s", sdomain)
+			for _, stubzone := range stubzones {
+				segments := strings.Split(stubzone, "/")
+				if len(segments) != 2 || len(segments[0]) == 0 || len(segments[1]) == 0 {
+					log.Fatalf("The --stubzones argument is invalid")
 				}
-				sdomain = strings.TrimSpace(sdomain)
-				sdomain = dns.Fqdn(sdomain)
-				stubmap[sdomain] = append(stubmap[sdomain], hostPort)
+
+				hostPort = segments[1]
+				hostPort = strings.TrimSpace(hostPort)
+				if strings.HasSuffix(hostPort, "]") {
+					hostPort += ":53"
+				} else if !strings.Contains(hostPort, ":") {
+					hostPort += ":53"
+				}
+
+				if err := validateHostPort(hostPort); err != nil {
+					log.Fatalf("This stubzones server address invalid: %s", err)
+				}
+
+				for _, sdomain := range strings.Split(segments[0], ",") {
+					if dns.CountLabel(sdomain) < 1 {
+						log.Fatalf("This stubzones domain is not a FQDN: %s", sdomain)
+					}
+					sdomain = strings.TrimSpace(sdomain)
+					sdomain = dns.Fqdn(sdomain)
+					stubmap[sdomain] = append(stubmap[sdomain], hostPort)
+				}
 			}
 
 			config.Stub = &stubmap
