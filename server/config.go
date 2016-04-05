@@ -6,17 +6,13 @@
 package server
 
 import (
+	"fmt"
 	"net"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/codegangsta/cli"
 	"github.com/miekg/dns"
-)
-
-const (
-	RCacheCapacity = 100000
-	RCacheTtl      = 60
 )
 
 // Config provides options to the go-dnsmasq resolver
@@ -51,8 +47,10 @@ type Config struct {
 	RCache int `json:"rcache,omitempty"`
 	// RCacheTtl, how long to cache in seconds.
 	RCacheTtl int `json:"rcache_ttl,omitempty"`
-	// How many labels a name should have before we allow forwarding. Default to 2.
-	Ndots int `json:"ndot,omitempty"`
+	// How many dots a name must have before we allow to forward the query as-is. Defaults to 1.
+	FwdNdots int `json:"fwd_ndots,omitempty"`
+	// How many dots a name must have before we do an initial absolute query. Defaults to 1.
+	Ndots int `json:"ndots,omitempty"`
 
 	Verbose bool `json:"-"`
 
@@ -60,54 +58,59 @@ type Config struct {
 	Stub *map[string][]string
 }
 
-func SetDefaults(config *Config) error {
-	if config.ReadTimeout == 0 {
-		config.ReadTimeout = 2 * time.Second
-	}
-	if config.DnsAddr == "" {
-		config.DnsAddr = "127.0.0.1:53"
-	}
-	if config.Ttl == 0 {
-		config.Ttl = 360
-	}
-	if config.HostsTtl == 0 {
-		config.HostsTtl = 10
-	}
-	if config.RCache < 0 {
-		config.RCache = 0
-	}
-	if config.RCacheTtl == 0 {
-		config.RCacheTtl = RCacheTtl
-	}
-	if config.Ndots <= 0 {
-		config.Ndots = 2
+func ResolvConf(config *Config, ctx *cli.Context) error {
+	// Get host resolv config
+	resolvConf, err := dns.ClientConfigFromFile("/etc/resolv.conf")
+	if err != nil {
+		return err
 	}
 
 	if len(config.Nameservers) == 0 {
-		c, err := dns.ClientConfigFromFile("/etc/resolv.conf")
-		if !os.IsNotExist(err) {
-			if err != nil {
-				return err
-			}
-			for _, s := range c.Servers {
-				config.Nameservers = append(config.Nameservers, net.JoinHostPort(s, c.Port))
-			}
+		for _, s := range resolvConf.Servers {
+			config.Nameservers = append(config.Nameservers, net.JoinHostPort(s, resolvConf.Port))
 		}
 	}
 
-	// For now we only get the first SEARCH domain found
+	if !ctx.IsSet("ndots") {
+		config.Ndots = resolvConf.Ndots
+	}
+
 	if config.AppendDomain && len(config.SearchDomains) == 0 {
-		c, err := dns.ClientConfigFromFile("/etc/resolv.conf")
-		if !os.IsNotExist(err) {
-			if err != nil {
-				return err
-			}
-			for _, s := range c.Search {
-				s = dns.Fqdn(strings.ToLower(s))
-				config.SearchDomains = append(config.SearchDomains, s)
-			}
+		for _, s := range resolvConf.Search {
+			s = dns.Fqdn(strings.ToLower(s))
+			config.SearchDomains = append(config.SearchDomains, s)
 		}
 	}
+
+	return nil
+}
+
+func CheckConfig(config *Config) error {
+	if config.DnsAddr == "" {
+		return fmt.Errorf("'listen' cannot be empty")
+	}
+	if !config.NoRec && len(config.Nameservers) == 0 {
+		return fmt.Errorf("You need to specify some nameservers or disable recursion")
+	}
+	if config.AppendDomain && len(config.SearchDomains) == 0 {
+		return fmt.Errorf("You need to specify some search domains")
+	}
+	if config.RCache < 0 {
+		return fmt.Errorf("'rcache' must be equal or greater than 0")
+	}
+	if config.RCacheTtl <= 0 {
+		return fmt.Errorf("'rcache-ttl' must be greater than 0")
+	}
+	if config.Ndots <= 0 {
+		return fmt.Errorf("'ndots' must be greater than 0")
+	}
+	if config.FwdNdots < 0 {
+		return fmt.Errorf("'fwd-ndots' must be equal or greater than 0")
+	}
+
+	// Set defaults
+	config.Ttl = 360
+	config.HostsTtl = 10
 
 	stubmap := make(map[string][]string)
 	config.Stub = &stubmap
