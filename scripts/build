@@ -3,7 +3,7 @@ set -e
 
 BUILD_IMAGE_NAME="go-dnsmasq-build"
 # GOARCH=${GOARCH:-"386 amd64 arm"}
-GOOS=${GOOS:-"darwin linux windows"}
+GOOS=${GOOS:-"darwin linux"}
 GOARCH=${GOARCH:-"amd64"}
 
 # Build image for compilation if not detected
