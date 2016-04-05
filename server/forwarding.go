@@ -128,21 +128,14 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	}
 
 	if didSearch && err2 == nil {
-		var rcode int
-		if didAbsolute {
-			rcode = res2.Rcode
-		} else {
-			// Name was too short to forward as-is
-			rcode = dns.RcodeRefused
-		}
-		log.Debugf("Sent reply: qname '%s', rcode %s", name, dns.RcodeToString[rcode])
+		log.Debugf("Sent reply: qname '%s', rcode %s", name, dns.RcodeToString[res2.Rcode])
 		m := new(dns.Msg)
-		m.SetRcode(req, rcode)
+		m.SetRcode(req, res2.Rcode)
 		w.WriteMsg(m)
 		return m
 	}
 
-	// If we got here, we encountered an error while forwarding
+	// If we got here, we encountered an error while forwarding (which we already logged)
 	log.Debugf("Sent reply: qname '%s', rcode SRVFAIL", name)
 	m := new(dns.Msg)
 	m.SetRcode(req, dns.RcodeServerFailure)

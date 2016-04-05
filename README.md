@@ -47,7 +47,7 @@ DNS queries are resolved in the style of the GNU libc resolver:
 | --rcache, -r                   | Capacity of the response cache (‘0‘ to disable cache)                         | 0             | $DNSMASQ_RCACHE      |
 | --rcache-ttl                   | TTL for entries in the response cache                                         | 60            | $DNSMASQ_RCACHE_TTL  |
 | --no-rec                       | Disable recursion                                                             | False         | $DNSMASQ_NOREC       |
-| --fwd-ndots                    | Minimum number of dots a name must have before the query is allowed to be forwarded to upstream nameservers | 1  | $DNSMASQ_FWD_NDOTS   |
+| --fwd-ndots                    | Minimum number of dots a name must have before the query is allowed to be forwarded to upstream nameservers | 0 | $DNSMASQ_FWD_NDOTS   |
 | --ndots                        | Number of dots a name must have before an initial absolute query will be made (defaults to /etc/resolv.conf value) | 1  | $DNSMASQ_NDOTS |
 | --round-robin                  | Enable round robin of A/AAAA records                                          | False         | $DNSMASQ_RR          |
 | --systemd                      | Bind to socket(s) activated by Systemd (ignores --listen)                     | False         | $DNSMASQ_SYSTEMD     |

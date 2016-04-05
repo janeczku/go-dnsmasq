@@ -114,7 +114,7 @@ func main() {
 		},
 		cli.IntFlag{
 			Name:   "fwd-ndots",
-			Value:  1,
+			Value:  0,
 			Usage:  "Minimum number of dots a name must have before the query is forwarded",
 			EnvVar: "DNSMASQ_FWD_NDOTS",
 		},
