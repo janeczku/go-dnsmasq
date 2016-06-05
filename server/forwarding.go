@@ -50,15 +50,15 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	// try as absolute name
 	if nameDots >= s.config.Ndots {
 		if nameDots >= s.config.FwdNdots {
-			log.Debugf("Doing initial absolute query for qname '%s'", name)
+			log.Debugf("[%d] Doing initial absolute query for qname '%s'", req.Id, name)
 			res1, err1 = s.forwardQuery(req, tcp)
 			if err1 != nil {
-				log.Errorf("Error forwarding absolute query for qname '%s': %q", name, err1)
+				log.Errorf("[%d] Failed to query upstream for qname '%s': %q", req.Id, name, err1)
 			}
 
 			if err1 == nil && res1.Rcode == dns.RcodeSuccess {
-				log.Debugf("Sent reply: qname '%s', rcode %s",
-					name, dns.RcodeToString[res1.Rcode])
+				log.Debugf("[%d] Response to client: qname '%s', rcode %s",
+					req.Id, name, dns.RcodeToString[res1.Rcode])
 				res1.Compress = true
 				res1.Id = req.Id
 				w.WriteMsg(res1)
@@ -66,22 +66,22 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 			}
 			didAbsolute = true
 		} else {
-			log.Debugf("Not forwarding initial query, name too short: '%s'", name)
+			log.Debugf("[%d] Not forwarding initial query, name too short: '%s'", req.Id, name)
 		}
 	}
 
 	// We do at least one level of search if AppendDomain is set
 	// and forwarding did not previously fail
 	if err1 == nil && s.config.AppendDomain {
-		log.Debugf("Doing search query for qname '%s'", name)
+		log.Debugf("[%d] Doing search query for qname '%s'", req.Id, name)
 		res2, err2 = s.forwardSearch(req, tcp)
 		if err2 != nil {
-			log.Errorf("Error forwarding search query for qname '%s': %q", name, err2)
+			log.Errorf("[%d] Failed to query upstream for qname '%s': %q", req.Id, name, err2)
 		}
 
 		if err2 == nil && res2.Rcode == dns.RcodeSuccess {
-			log.Debugf("Sent reply: qname '%s', rcode %s",
-				name, dns.RcodeToString[res2.Rcode])
+			log.Debugf("[%d] Response to client: qname '%s', rcode %s",
+				req.Id, name, dns.RcodeToString[res2.Rcode])
 			res2.Compress = true
 			res2.Id = req.Id
 			w.WriteMsg(res2)
@@ -95,15 +95,15 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	// previously fail
 	if err2 == nil && !didAbsolute {
 		if nameDots >= s.config.FwdNdots {
-			log.Debugf("Doing absolute query for qname '%s'", name)
+			log.Debugf("[%d] Doing absolute query for qname '%s'", req.Id, name)
 			res1, err1 = s.forwardQuery(req, tcp)
 			if err1 != nil {
-				log.Errorf("Error forwarding absolute query for qname '%s': %q", name, err1)
+				log.Errorf("[%d] Failed to query upstream for qname '%s': %q", req.Id, name, err1)
 			}
 
 			if err1 == nil && res1.Rcode == dns.RcodeSuccess {
-				log.Debugf("Sent reply: qname '%s', rcode %s",
-					name, dns.RcodeToString[res1.Rcode])
+				log.Debugf("[%d] Response to client: qname '%s', rcode %s",
+					req.Id, name, dns.RcodeToString[res1.Rcode])
 				res1.Compress = true
 				res1.Id = req.Id
 				w.WriteMsg(res1)
@@ -111,7 +111,7 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 			}
 			didAbsolute = true
 		} else {
-			log.Debugf("Not forwarding query, name too short: `%s'", name)
+			log.Debugf("[%d] Not forwarding query, name too short: `%s'", req.Id, name)
 		}
 	}
 
@@ -119,8 +119,8 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	// If we did an initial absolute query, return that query's result.
 	// else return a no-data response with the rcode from the last search we did.
 	if didAbsolute && err1 == nil {
-		log.Debugf("Sent reply: qname '%s', rcode %s",
-					name, dns.RcodeToString[res1.Rcode])
+		log.Debugf("[%d] Response to client: qname '%s', rcode %s",
+					req.Id, name, dns.RcodeToString[res1.Rcode])
 		res1.Compress = true
 		res1.Id = req.Id
 		w.WriteMsg(res1)
@@ -128,7 +128,7 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	}
 
 	if didSearch && err2 == nil {
-		log.Debugf("Sent reply: qname '%s', rcode %s", name, dns.RcodeToString[res2.Rcode])
+		log.Debugf("[%d] Response to client: qname '%s', rcode %s", req.Id, name, dns.RcodeToString[res2.Rcode])
 		m := new(dns.Msg)
 		m.SetRcode(req, res2.Rcode)
 		w.WriteMsg(m)
@@ -136,7 +136,7 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	}
 
 	// If we got here, we encountered an error while forwarding (which we already logged)
-	log.Debugf("Sent reply: qname '%s', rcode SRVFAIL", name)
+	log.Debugf("[%d] Failed to resolve query for qname '%s'. Sending rcode SRVFAIL", req.Id, name)
 	m := new(dns.Msg)
 	m.SetRcode(req, dns.RcodeServerFailure)
 	w.WriteMsg(m)
@@ -239,8 +239,8 @@ func (s *server) forwardQuery(req *dns.Msg, tcp bool) (*dns.Msg, error) {
 	}
 
 	for try := 1; try <= 2; try++ {
-		log.Debugf("Sending query: ns '%s', qname '%s'",
-			nservers[nsIdx], req.Question[0].Name)
+		log.Debugf("[%d] Querying upstream server '%s' for qname '%s'",
+			req.Id, nservers[nsIdx], req.Question[0].Name)
 
 		switch tcp {
 		case false:
@@ -250,8 +250,8 @@ func (s *server) forwardQuery(req *dns.Msg, tcp bool) (*dns.Msg, error) {
 		}
 
 		if err == nil {
-			log.Debugf("Got reply: ns '%s', qname '%s', rcode %s",
-				nservers[nsIdx],req.Question[0].Name, dns.RcodeToString[r.Rcode])
+			log.Debugf("[%d] Response from upstream for qname '%s': rcode %s",
+				req.Id, nservers[nsIdx],req.Question[0].Name, dns.RcodeToString[r.Rcode])
 			switch r.Rcode {
 			// SUCCESS
 			case dns.RcodeSuccess:
@@ -269,8 +269,8 @@ func (s *server) forwardQuery(req *dns.Msg, tcp bool) (*dns.Msg, error) {
 		}
 
 		if err != nil {
-			log.Debugf("Query failed: ns '%s', qname '%s', error: %s",
-				nservers[nsIdx], req.Question[0].Name, err.Error())
+			log.Debugf("[%d] Failed to query upstream server '%s' for qname '%s': %s",
+				req.Id, nservers[nsIdx], req.Question[0].Name, err.Error())
 		}
 
 		// Continue with next available server
@@ -295,7 +295,7 @@ func (s *server) ServeDNSReverse(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	if records, err := s.PTRRecords(req.Question[0]); err == nil && len(records) > 0 {
 		m.Answer = records
 		if err := w.WriteMsg(m); err != nil {
-			log.Errorf("Failed to send reply: %q", err)
+			log.Errorf("[%d] Failed to send reply to client: %q", req.Id, err)
 		}
 		return m
 	}
