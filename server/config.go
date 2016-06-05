@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/miekg/dns"
 )
@@ -90,10 +91,11 @@ func CheckConfig(config *Config) error {
 		return fmt.Errorf("'listen' cannot be empty")
 	}
 	if !config.NoRec && len(config.Nameservers) == 0 {
-		return fmt.Errorf("You need to specify some nameservers or disable recursion")
+		return fmt.Errorf("Recursion is enabled but no nameservers are configured")
 	}
 	if config.AppendDomain && len(config.SearchDomains) == 0 {
-		return fmt.Errorf("You need to specify some search domains")
+		config.AppendDomain = false
+		log.Warnf("Disabling search domain treatment as no search domains are configured")
 	}
 	if config.RCache < 0 {
 		return fmt.Errorf("'rcache' must be equal or greater than 0")
