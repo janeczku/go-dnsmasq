@@ -27,8 +27,8 @@ import (
 	"github.com/janeczku/go-dnsmasq/stats"
 )
 
-// var Version string
-const Version = "1.0.5"
+// set at build time
+var Version = "dev"
 
 var (
 	nameservers   = []string{}
