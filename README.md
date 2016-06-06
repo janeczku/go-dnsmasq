@@ -42,22 +42,22 @@ DNS queries are resolved in the style of the GNU libc resolver:
 | ------------------------------ | ----------------------------------------------------------------------------- | ------------- | -------------------- |
 | --listen, -l                   | Address to listen on  `host[:port]`                                           | 127.0.0.1:53  | $DNSMASQ_LISTEN      |
 | --default-resolver, -d         | Update resolv.conf to make go-dnsmasq the host's nameserver                   | False         | $DNSMASQ_DEFAULT     |
-| --nameservers, -n              | Comma delimited list of nameservers `host[:port]`. IPv6 literal addresses must be enclosed in brackets. (supersedes /etc/resolv.conf value) | -  | $DNSMASQ_SERVERS     |
-| --stubzones, -z                | Use a different nameserver for specific domains. Flag can be passed multiple times to specify more zones. `domain[,domain]/host[:port]`  | -  |$DNSMASQ_STUB        |
+| --nameservers, -n              | Comma delimited list of nameservers `host[:port]`. IPv6 literal address must be enclosed in brackets. (supersedes etc/resolv.conf) | -  | $DNSMASQ_SERVERS     |
+| --stubzones, -z                | Use a different nameserver for specified domains. Can be passed multiple times. `domain[,domain]/host[:port]`   | -  |$DNSMASQ_STUB        |
 | --hostsfile, -f                | Path to a hosts file (e.g. ‘/etc/hosts‘)                                      | -             | $DNSMASQ_HOSTSFILE   |
 | --hostsfile-poll, -p           | How frequently to poll hosts file for changes (seconds, ‘0‘ to disable)       | 0             | $DNSMASQ_POLL        |
-| --search-domains, -s           | Comma delimited list of search domains `domain[,domain]` (supersedes /etc/resolv.conf) | -             | $DNSMASQ_SEARCH      |
-| --append-search-domains, -a    | Resolve queries by appending search domains                                   | False         | $DNSMASQ_APPEND      |
-| --rcache, -r                   | Capacity of the response cache (‘0‘ to disable cache)                         | 0             | $DNSMASQ_RCACHE      |
+| --search-domains, -s           | Comma delimited list of search domains `domain[,domain]` (supersedes /etc/resolv.conf) | -             | $DNSMASQ_SEARCH_DOMAINS      |
+| --enable-search, -search       | Qualify names with search domains to resolve queries                          | False         | $DNSMASQ_ENABLE_SEARCH      |
+| --rcache, -r                   | Capacity of the response cache (‘0‘ disables caching)                         | 0             | $DNSMASQ_RCACHE      |
 | --rcache-ttl                   | TTL for entries in the response cache                                         | 60            | $DNSMASQ_RCACHE_TTL  |
-| --no-rec                       | Disable recursion                                                             | False         | $DNSMASQ_NOREC       |
-| --fwd-ndots                    | Minimum number of dots a name must have before the query is allowed to be forwarded to upstream nameservers | 0 | $DNSMASQ_FWD_NDOTS   |
-| --ndots                        | Number of dots a name must have before an initial absolute query will be made (supersedes /etc/resolv.conf) | 1  | $DNSMASQ_NDOTS |
+| --no-rec                       | Disable forwarding of queries to upstream nameservers                         | False         | $DNSMASQ_NOREC       |
+| --fwd-ndots                    | Number of dots a name must have before the query is forwarded                 | 0 | $DNSMASQ_FWD_NDOTS   |
+| --ndots                        | Number of dots a name must have before making an initial absolute query (supersedes /etc/resolv.conf) | 1  | $DNSMASQ_NDOTS |
 | --round-robin                  | Enable round robin of A/AAAA records                                          | False         | $DNSMASQ_RR          |
 | --systemd                      | Bind to socket(s) activated by Systemd (ignores --listen)                     | False         | $DNSMASQ_SYSTEMD     |
 | --verbose                      | Enable verbose logging                                                        | False         | $DNSMASQ_VERBOSE     |
 | --syslog                       | Enable syslog logging                                                         | False         | $DNSMASQ_SYSLOG      |
-| --multithreading               | Enable multithreading                                                         | False         |                      |
+| --multithreading               | Enable multithreading (experimental)                                          | False         |                      |
 | --help, -h                     | Show help                                                                     |               |                      |
 | --version, -v                  | Print the version                                                             |               |                      |
 
