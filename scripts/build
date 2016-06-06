@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+if [ -z "$1" ]; then
+    echo "The version number must be passed to this script"
+    exit 1
+fi
+VERSION=$1
+
+echo "building binary $VERSION"
+
 BUILD_IMAGE_NAME="go-dnsmasq-build"
 # GOARCH=${GOARCH:-"386 amd64 arm"}
 GOOS=${GOOS:-"darwin linux"}
@@ -23,6 +31,6 @@ docker run --rm \
     -os "$GOOS" \
     -arch "$GOARCH" \
     -output="go-dnsmasq_{{.OS}}-{{.Arch}}" \
-    -ldflags="-w -s" \
+    -ldflags "-w -s -X main.Version=$VERSION" \
     -tags="netgo" \
     -rebuild
