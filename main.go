@@ -76,13 +76,13 @@ func main() {
 		cli.StringFlag{
 			Name:   "hostsfile, f",
 			Value:  "",
-			Usage:  "Path to a hostsfile (e.g. ‘/etc/hosts‘)",
+			Usage:  "Path to a hosts file (e.g. ‘/etc/hosts‘)",
 			EnvVar: "DNSMASQ_HOSTSFILE",
 		},
 		cli.IntFlag{
 			Name:   "hostsfile-poll, p",
 			Value:  0,
-			Usage:  "How frequently to poll hostsfile for changes (seconds, ‘0‘ to disable)",
+			Usage:  "How frequently to poll hosts file for changes (seconds, ‘0‘ to disable)",
 			EnvVar: "DNSMASQ_POLL",
 		},
 		cli.StringFlag{
@@ -105,7 +105,7 @@ func main() {
 		cli.IntFlag{
 			Name:   "rcache, r",
 			Value:  0,
-			Usage:  "Capacity of the response cache (‘0‘ disables the cache)",
+			Usage:  "Capacity of the response cache (‘0‘ disables caching)",
 			EnvVar: "DNSMASQ_RCACHE",
 		},
 		cli.IntFlag{
