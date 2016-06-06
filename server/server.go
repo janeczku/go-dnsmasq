@@ -1,5 +1,5 @@
-// Copyright (c) 2014 The SkyDNS Authors. All rights reserved.
-// Copyright (c) 2015 Jan Broer
+// Copyright (c) 2015 Jan Broer. All rights reserved.
+// Contains code (c) 2014 The SkyDNS Authors
 // Use of this source code is governed by The MIT License (MIT) that can be
 // found in the LICENSE file.
 
@@ -10,6 +10,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/go-systemd/activation"
@@ -53,7 +54,11 @@ func (s *server) Run() error {
 	mux.Handle(".", s)
 
 	dnsReadyMsg := func(addr, net string) {
-		log.Infof("Ready for queries on %s://%s [rcache capacity %d]", net, addr, s.config.RCache)
+		rCacheState := "disabled"
+		if s.config.RCache > 0 {
+			rCacheState = fmt.Sprintf("capacity: %d", s.config.RCache)
+		}
+		log.Infof("Ready for queries on %s://%s [cache: %s]", net, addr, rCacheState)
 	}
 
 	if s.config.Systemd {
@@ -124,6 +129,11 @@ func (s *server) Stop() {
 // ServeDNS is the handler for DNS requests, responsible for parsing DNS request, possibly forwarding
 // it to a real dns server and returning a response.
 func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
+	startTime := time.Now()
+	defer func() {
+		elapsed := time.Since(startTime)
+		log.Debugf("[%d] Response time: %s", req.Id, elapsed)
+	}()
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.Authoritative = false
@@ -167,11 +177,12 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		StatsDnssecOkCount.Inc(1)
 	}
 
-	log.Debugf("Received DNS query for %q from %q with type %d", q.Name, w.RemoteAddr(), q.Qtype)
+	log.Debugf("[%d] Got query for '%s %s' from %s", req.Id, dns.TypeToString[q.Qtype], q.Name, w.RemoteAddr().String())
 
 	// Check cache first.
 	m1 := s.rcache.Hit(q, dnssec, tcp, m.Id)
 	if m1 != nil {
+		log.Debugf("[%d] Found cached response for this query", req.Id)
 		if tcp {
 			if _, overflow := Fit(m1, dns.MaxMsgSize, tcp); overflow {
 				msgFail := new(dns.Msg)
@@ -227,9 +238,10 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	if q.Qtype == dns.TypeA || q.Qtype == dns.TypeAAAA || q.Qtype == dns.TypeANY {
 		records, err := s.AddressRecords(q, name)
 		if err != nil {
-			log.Errorf("Error querying hostsfile records: %s", err)
+			log.Errorf("Error looking up hostsfile records: %s", err)
 		}
 		if len(records) > 0 {
+			log.Debugf("[%d] Found name in hostsfile records", req.Id)
 			m.Answer = append(m.Answer, records...)
 			return
 		}
@@ -248,21 +260,6 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		m.Authoritative = true
 		if q.Qtype == dns.TypeTXT {
 			switch name {
-			case "authors.bind.":
-				hdr := dns.RR_Header{Name: q.Name, Rrtype: dns.TypeTXT, Class: dns.ClassCHAOS, Ttl: 0}
-				authors := []string{"Erik St. Martin", "Brian Ketelsen", "Miek Gieben", "Michael Crosby", "Jan Broer"}
-				for _, a := range authors {
-					m.Answer = append(m.Answer, &dns.TXT{Hdr: hdr, Txt: []string{a}})
-				}
-				for j := 0; j < len(authors)*(int(dns.Id())%4+1); j++ {
-					q := int(dns.Id()) % len(authors)
-					p := int(dns.Id()) % len(authors)
-					if q == p {
-						p = (p + 1) % len(authors)
-					}
-					m.Answer[q], m.Answer[p] = m.Answer[p], m.Answer[q]
-				}
-				return
 			case "version.bind.":
 				fallthrough
 			case "version.server.":

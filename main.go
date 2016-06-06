@@ -46,7 +46,8 @@ func init() {
 func main() {
 	app := cli.NewApp()
 	app.Name = "go-dnsmasq"
-	app.Usage = "Lightweight caching DNS server/forwarder"
+	app.Usage = "Lightweight caching DNS server and forwarder\n   Website: http://github.com/janeczku/go-dnsmasq"
+	app.UsageText = "go-dnsmasq [global options]"
 	app.Version = Version
 	app.Author, app.Email = "", ""
 	app.Flags = []cli.Flag{
@@ -58,18 +59,18 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:   "default-resolver, d",
-			Usage:  "Update resolv.conf to make go-dnsmasq the host's nameserver",
+			Usage:  "Update resolv.conf to make the host use go-dnsmasq as nameserver",
 			EnvVar: "DNSMASQ_DEFAULT",
 		},
 		cli.StringFlag{
 			Name:   "nameservers, n",
 			Value:  "",
-			Usage:  "Comma delimited list of nameservers `host[:port]` (defaults to /etc/resolv.conf)",
+			Usage:  "Comma delimited list of nameservers `host[:port]` (supersedes resolv.conf)",
 			EnvVar: "DNSMASQ_SERVERS",
 		},
 		cli.StringSliceFlag{
 			Name:   "stubzones, z",
-			Usage:  "Use a different nameservers for specific domains. Flag can be passed multiple times. `domain[,domain]/host[:port]`",
+			Usage:  "Use a different nameserver for specified domains `domain[,domain]/host[:port]`",
 			EnvVar: "DNSMASQ_STUB",
 		},
 		cli.StringFlag{
@@ -87,18 +88,24 @@ func main() {
 		cli.StringFlag{
 			Name:   "search-domains, s",
 			Value:  "",
-			Usage:  "Comma delimited list of search domains `domain[,domain]` (defaults to /etc/resolv.conf)",
-			EnvVar: "DNSMASQ_SEARCH",
+			Usage:  "List of search domains `domain[,domain]` (supersedes resolv.conf)",
+			EnvVar: "DNSMASQ_SEARCH_DOMAINS,DNSMASQ_SEARCH,", // deprecated DNSMASQ_SEARCH
 		},
-		cli.BoolFlag{
+		cli.BoolFlag{ // deprecated
 			Name:   "append-search-domains, a",
 			Usage:  "Resolve queries using search domains",
 			EnvVar: "DNSMASQ_APPEND",
+			Hidden: true,
+		},
+		cli.BoolFlag{
+			Name:   "enable-search, search",
+			Usage:  "Qualify names with search domains to resolve queries",
+			EnvVar: "DNSMASQ_ENABLE_SEARCH",
 		},
 		cli.IntFlag{
 			Name:   "rcache, r",
 			Value:  0,
-			Usage:  "Capacity of the response cache (‘0‘ to disable the cache)",
+			Usage:  "Capacity of the response cache (‘0‘ disables the cache)",
 			EnvVar: "DNSMASQ_RCACHE",
 		},
 		cli.IntFlag{
@@ -115,13 +122,13 @@ func main() {
 		cli.IntFlag{
 			Name:   "fwd-ndots",
 			Value:  0,
-			Usage:  "Minimum number of dots a name must have before the query is forwarded",
+			Usage:  "Number of dots a name must have before the query is forwarded",
 			EnvVar: "DNSMASQ_FWD_NDOTS",
 		},
 		cli.IntFlag{
 			Name:   "ndots",
 			Value:  1,
-			Usage:  "Number of dots a name must have before an initial absolute query will be made (defaults to /etc/resolv.conf)",
+			Usage:  "Number of dots a name must have before making an initial absolute query (supersedes resolv.conf)",
 			EnvVar: "DNSMASQ_NDOTS",
 		},
 		cli.BoolFlag{
@@ -146,11 +153,11 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:   "multithreading",
-			Usage:  "Enable multithreading",
+			Usage:  "Enable multithreading (experimental)",
 			EnvVar: "DNSMASQ_MULTITHREADING",
 		},
 	}
-	app.Action = func(c *cli.Context) {
+	app.Action = func(c *cli.Context) error {
 		exitReason := make(chan error)
 		go func() {
 			c := make(chan os.Signal, 1)
@@ -159,6 +166,14 @@ func main() {
 			log.Infoln("Application exit requested by signal:", sig)
 			exitReason <- nil
 		}()
+
+		var enableSearch bool
+		if c.IsSet("append-search-domains") {
+			log.Info("The flag '--append-search-domains' is deprecated. Please use '--enable-search' or '-search' instead.")
+			enableSearch = c.Bool("append-search-domains")
+		} else {
+			enableSearch = c.Bool("enable-search")
+		}
 
 		if c.Bool("multithreading") {
 			runtime.GOMAXPROCS(runtime.NumCPU() + 1)
@@ -224,7 +239,7 @@ func main() {
 			Nameservers:     nameservers,
 			Systemd:         c.Bool("systemd"),
 			SearchDomains:   searchDomains,
-			AppendDomain:    c.Bool("append-search-domains"),
+			EnableSearch:    enableSearch,
 			Hostsfile:       c.String("hostsfile"),
 			PollInterval:    c.Int("hostsfile-poll"),
 			RoundRobin:      c.Bool("round-robin"),
@@ -281,8 +296,8 @@ func main() {
 		}
 
 		log.Infof("Starting go-dnsmasq server %s", Version)
-		log.Infof("Upstream nameservers: %v", config.Nameservers)
-		if config.AppendDomain {
+		log.Infof("Nameservers: %v", config.Nameservers)
+		if config.EnableSearch {
 			log.Infof("Search domains: %v", config.SearchDomains)
 		}
 
@@ -319,6 +334,8 @@ func main() {
 		if exitErr != nil {
 			log.Fatalf("Server error: %s", err)
 		}
+
+		return nil
 	}
 
 	app.Run(os.Args)
