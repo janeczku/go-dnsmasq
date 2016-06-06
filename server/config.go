@@ -1,4 +1,3 @@
-// Copyright (c) 2014 The SkyDNS Authors. All rights reserved.
 // Copyright (c) 2015 Jan Broer. All rights reserved.
 // Use of this source code is governed by The MIT License (MIT) that can be
 // found in the LICENSE file.
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 	"github.com/janeczku/go-dnsmasq/dns"
 )
@@ -21,11 +21,10 @@ type Config struct {
 	DnsAddr string `json:"dns_addr,omitempty"`
 	// Rewrite host's network config making go-dnsmasq the default resolver
 	DefaultResolver bool `json:"default_resolver,omitempty"`
-	// Domain to append to query names that are not FQDN
-	// Replicates the SEARCH keyword in /etc/resolv.conf
+	// Search domains used to qualify queries
 	SearchDomains []string `json:"search_domains,omitempty"`
-	// Replicates the SEARCH keyword in /etc/resolv.conf
-	AppendDomain bool `json:"append_domain,omitempty"`
+	// Replicates GNU libc's use of /etc/resolv.conf search domains
+	EnableSearch bool `json:"append_domain,omitempty"`
 	// Path to the hostfile
 	Hostsfile string `json:"hostfile,omitempty"`
 	// Hostfile Polling
@@ -65,11 +64,12 @@ func ResolvConf(config *Config, ctx *cli.Context) error {
 		}
 	}
 
-	if !ctx.IsSet("ndots") {
+	if !ctx.IsSet("ndots") && resolvConf.Ndots != 1 {
+		log.Debugf("Setting ndots from resolv.conf: %d", resolvConf.Ndots)
 		config.Ndots = resolvConf.Ndots
 	}
 
-	if config.AppendDomain && len(config.SearchDomains) == 0 {
+	if config.EnableSearch && len(config.SearchDomains) == 0 {
 		for _, s := range resolvConf.Search {
 			s = dns.Fqdn(strings.ToLower(s))
 			config.SearchDomains = append(config.SearchDomains, s)
@@ -84,10 +84,11 @@ func CheckConfig(config *Config) error {
 		return fmt.Errorf("'listen' cannot be empty")
 	}
 	if !config.NoRec && len(config.Nameservers) == 0 {
-		return fmt.Errorf("You need to specify some nameservers or disable recursion")
+		return fmt.Errorf("Recursion is enabled but no nameservers are configured")
 	}
-	if config.AppendDomain && len(config.SearchDomains) == 0 {
-		return fmt.Errorf("You need to specify some search domains")
+	if config.EnableSearch && len(config.SearchDomains) == 0 {
+		config.EnableSearch = false
+		log.Warnf("No search domains configured, disabling search.")
 	}
 	if config.Ndots <= 0 {
 		return fmt.Errorf("'ndots' must be greater than 0")

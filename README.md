@@ -1,7 +1,11 @@
 # go-dnsmasq
-[![Docker Pulls](https://img.shields.io/docker/pulls/janeczku/go-dnsmasq.svg)](https://hub.docker.com/r/janeczku/go-dnsmasq/)
+[![Latest Version](https://img.shields.io/github/release/janeczku/go-dnsmasq.svg?maxAge=2592000)][release]
+[![Github All Releases](https://img.shields.io/github/downloads/janeczku/go-dnsmasq/total.svg?maxAge=2592000)]()
+[![Docker Pulls](https://img.shields.io/docker/pulls/janeczku/go-dnsmasq.svg?maxAge=2592000)][hub]
+[![License](https://img.shields.io/github/license/janeczku/go-dnsmasq.svg?maxAge=2592000)]()
 
-*Version 1.0.5*
+[release]: https://github.com/janeczku/go-dnsmasq/releases
+[hub]: https://hub.docker.com/r/janeczku/go-dnsmasq/
 
 go-dnsmasq is a lightweight (1.2 MB) DNS caching server/forwarder with minimal filesystem and runtime overhead.
 
@@ -38,17 +42,17 @@ DNS queries are resolved in the style of the GNU libc resolver:
 | ------------------------------ | ----------------------------------------------------------------------------- | ------------- | -------------------- |
 | --listen, -l                   | Address to listen on  `host[:port]`                                           | 127.0.0.1:53  | $DNSMASQ_LISTEN      |
 | --default-resolver, -d         | Update resolv.conf to make go-dnsmasq the host's nameserver                   | False         | $DNSMASQ_DEFAULT     |
-| --nameservers, -n              | Comma delimited list of nameservers `host[:port]`. IPv6 literal addresses must be enclosed in brackets. (defaults to /etc/resolv.conf value) | -  | $DNSMASQ_SERVERS     |
+| --nameservers, -n              | Comma delimited list of nameservers `host[:port]`. IPv6 literal addresses must be enclosed in brackets. (supersedes /etc/resolv.conf value) | -  | $DNSMASQ_SERVERS     |
 | --stubzones, -z                | Use a different nameserver for specific domains. Flag can be passed multiple times to specify more zones. `domain[,domain]/host[:port]`  | -  |$DNSMASQ_STUB        |
 | --hostsfile, -f                | Path to a hosts file (e.g. ‘/etc/hosts‘)                                      | -             | $DNSMASQ_HOSTSFILE   |
 | --hostsfile-poll, -p           | How frequently to poll hosts file for changes (seconds, ‘0‘ to disable)       | 0             | $DNSMASQ_POLL        |
-| --search-domains, -s           | Comma delimited list of search domains `domain[,domain]` (defaults to /etc/resolv.conf value) | -             | $DNSMASQ_SEARCH      |
+| --search-domains, -s           | Comma delimited list of search domains `domain[,domain]` (supersedes /etc/resolv.conf) | -             | $DNSMASQ_SEARCH      |
 | --append-search-domains, -a    | Resolve queries by appending search domains                                   | False         | $DNSMASQ_APPEND      |
 | --rcache, -r                   | Capacity of the response cache (‘0‘ to disable cache)                         | 0             | $DNSMASQ_RCACHE      |
 | --rcache-ttl                   | TTL for entries in the response cache                                         | 60            | $DNSMASQ_RCACHE_TTL  |
 | --no-rec                       | Disable recursion                                                             | False         | $DNSMASQ_NOREC       |
 | --fwd-ndots                    | Minimum number of dots a name must have before the query is allowed to be forwarded to upstream nameservers | 0 | $DNSMASQ_FWD_NDOTS   |
-| --ndots                        | Number of dots a name must have before an initial absolute query will be made (defaults to /etc/resolv.conf value) | 1  | $DNSMASQ_NDOTS |
+| --ndots                        | Number of dots a name must have before an initial absolute query will be made (supersedes /etc/resolv.conf) | 1  | $DNSMASQ_NDOTS |
 | --round-robin                  | Enable round robin of A/AAAA records                                          | False         | $DNSMASQ_RR          |
 | --systemd                      | Bind to socket(s) activated by Systemd (ignores --listen)                     | False         | $DNSMASQ_SYSTEMD     |
 | --verbose                      | Enable verbose logging                                                        | False         | $DNSMASQ_VERBOSE     |

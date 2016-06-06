@@ -24,7 +24,7 @@ const RESOLVCONF_PATH = "/etc/resolv.conf"
 var resolvConfPattern = regexp.MustCompile("(?m:^.*" + regexp.QuoteMeta(RESOLVCONF_COMMENT_ADD) + ")(?:$|\n)")
 
 func StoreAddress(address string) error {
-	log.Debugf("Configuring nameserver in /etc/resolv.conf")
+	log.Info("Setting host nameserver to %s", address)
 	resolveConfEntry := fmt.Sprintf("nameserver %s %s\n", address, RESOLVCONF_COMMENT_ADD)
 	return updateResolvConf(resolveConfEntry, RESOLVCONF_PATH)
 }
