@@ -54,41 +54,41 @@ func main() {
 		cli.StringFlag{
 			Name:   "listen, l",
 			Value:  "127.0.0.1:53",
-			Usage:  "Address to listen on `host[:port]`",
+			Usage:  "Listen on this `address` <host[:port]>",
 			EnvVar: "DNSMASQ_LISTEN",
 		},
 		cli.BoolFlag{
 			Name:   "default-resolver, d",
-			Usage:  "Update resolv.conf to make the host use go-dnsmasq as nameserver",
+			Usage:  "Update /etc/resolv.conf with the address of go-dnsmasq as nameserver",
 			EnvVar: "DNSMASQ_DEFAULT",
 		},
 		cli.StringFlag{
 			Name:   "nameservers, n",
 			Value:  "",
-			Usage:  "Comma delimited list of nameservers `host[:port]` (supersedes resolv.conf)",
+			Usage:  "Comma delimited list of `nameservers` <host[:port][,host[:port]]> (supersedes resolv.conf)",
 			EnvVar: "DNSMASQ_SERVERS",
 		},
 		cli.StringSliceFlag{
 			Name:   "stubzones, z",
-			Usage:  "Use a different nameserver for specified domains `domain[,domain]/host[:port]`",
+			Usage:  "Use different nameservers for given domains <domain[,domain]/host[:port][,host[:port]]>",
 			EnvVar: "DNSMASQ_STUB",
 		},
 		cli.StringFlag{
 			Name:   "hostsfile, f",
 			Value:  "",
-			Usage:  "Path to a hosts file (e.g. ‘/etc/hosts‘)",
+			Usage:  "Path to a hosts `file` (e.g. /etc/hosts)",
 			EnvVar: "DNSMASQ_HOSTSFILE",
 		},
 		cli.IntFlag{
 			Name:   "hostsfile-poll, p",
 			Value:  0,
-			Usage:  "How frequently to poll hosts file for changes (seconds, ‘0‘ to disable)",
+			Usage:  "How frequently to poll hosts file (`seconds`, '0' to disable)",
 			EnvVar: "DNSMASQ_POLL",
 		},
 		cli.StringFlag{
 			Name:   "search-domains, s",
 			Value:  "",
-			Usage:  "List of search domains `domain[,domain]` (supersedes resolv.conf)",
+			Usage:  "List of search domains <domain[,domain]> (supersedes resolv.conf)",
 			EnvVar: "DNSMASQ_SEARCH_DOMAINS,DNSMASQ_SEARCH,", // deprecated DNSMASQ_SEARCH
 		},
 		cli.BoolFlag{ // deprecated
@@ -105,13 +105,13 @@ func main() {
 		cli.IntFlag{
 			Name:   "rcache, r",
 			Value:  0,
-			Usage:  "Capacity of the response cache (‘0‘ disables caching)",
+			Usage:  "Response cache `capacity` ('0' disables caching)",
 			EnvVar: "DNSMASQ_RCACHE",
 		},
 		cli.IntFlag{
 			Name:   "rcache-ttl",
 			Value:  60,
-			Usage:  "TTL for entries in the response cache",
+			Usage:  "TTL in `seconds` for response cache entries",
 			EnvVar: "DNSMASQ_RCACHE_TTL",
 		},
 		cli.BoolFlag{
@@ -122,13 +122,13 @@ func main() {
 		cli.IntFlag{
 			Name:   "fwd-ndots",
 			Value:  0,
-			Usage:  "Number of dots a name must have before the query is forwarded",
+			Usage:  "Number of `dots` a name must have before the query is forwarded",
 			EnvVar: "DNSMASQ_FWD_NDOTS",
 		},
 		cli.IntFlag{
 			Name:   "ndots",
 			Value:  1,
-			Usage:  "Number of dots a name must have before making an initial absolute query (supersedes resolv.conf)",
+			Usage:  "Number of `dots` a name must have before doing an initial absolute query (supersedes resolv.conf)",
 			EnvVar: "DNSMASQ_NDOTS",
 		},
 		cli.BoolFlag{
@@ -138,7 +138,7 @@ func main() {
 		},
 		cli.BoolFlag{
 			Name:   "systemd",
-			Usage:  "Bind to socket(s) activated by Systemd (ignores --listen)",
+			Usage:  "Bind to socket activated by Systemd (supersedes '--listen')",
 			EnvVar: "DNSMASQ_SYSTEMD",
 		},
 		cli.BoolFlag{
