@@ -1,8 +1,8 @@
 # go-dnsmasq
-[![Latest Version](https://img.shields.io/github/release/janeczku/go-dnsmasq.svg?maxAge=2592000)][release]
-[![Github All Releases](https://img.shields.io/github/downloads/janeczku/go-dnsmasq/total.svg?maxAge=2592000)]()
-[![Docker Pulls](https://img.shields.io/docker/pulls/janeczku/go-dnsmasq.svg?maxAge=2592000)][hub]
-[![License](https://img.shields.io/github/license/janeczku/go-dnsmasq.svg?maxAge=2592000)]()
+[![Latest Version](https://img.shields.io/github/release/janeczku/go-dnsmasq.svg?maxAge=60)][release]
+[![Github All Releases](https://img.shields.io/github/downloads/janeczku/go-dnsmasq/total.svg?maxAge=86400)]()
+[![Docker Pulls](https://img.shields.io/docker/pulls/janeczku/go-dnsmasq.svg?maxAge=86400)][hub]
+[![License](https://img.shields.io/github/license/janeczku/go-dnsmasq.svg?maxAge=86400)]()
 
 [release]: https://github.com/janeczku/go-dnsmasq/releases
 [hub]: https://hub.docker.com/r/janeczku/go-dnsmasq/
