@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
-if [ -z "$1" ]; then
-    echo "Pass the version number as the first arg. E.g.: scripts/release 1.2.3"
-    exit 1
-fi
-VERSION=$1
+
 if [ -z "$GITHUB_TOKEN" ]; then
     echo "GITHUB_TOKEN must be set for github-release"
     exit 1
 fi
+
+VERSION=$(cat VERSION)
+
+echo "making release version $VERSION"
 
 git checkout master
 
@@ -22,8 +22,8 @@ git push -f --tags
 
 git checkout master
 
-scripts/build
-scripts/build-min
+scripts/build $VERSION
+scripts/build-min $VERSION
 
 # UPX compression
 echo "Packing binaries with UPX..."
