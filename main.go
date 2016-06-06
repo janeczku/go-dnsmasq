@@ -270,28 +270,29 @@ func main() {
 					log.Fatalf("The --stubzones argument is invalid")
 				}
 
-				hostPort = segments[1]
-				hostPort = strings.TrimSpace(hostPort)
-				if strings.HasSuffix(hostPort, "]") {
-					hostPort += ":53"
-				} else if !strings.Contains(hostPort, ":") {
-					hostPort += ":53"
-				}
-
-				if err := validateHostPort(hostPort); err != nil {
-					log.Fatalf("This stubzones server address invalid: %s", err)
-				}
-
-				for _, sdomain := range strings.Split(segments[0], ",") {
-					if dns.CountLabel(sdomain) < 1 {
-						log.Fatalf("This stubzones domain is not a FQDN: %s", sdomain)
+				hosts := strings.Split(segments[1], ",")
+				for _, hostPort := range hosts {
+					hostPort = strings.TrimSpace(hostPort)
+					if strings.HasSuffix(hostPort, "]") {
+						hostPort += ":53"
+					} else if !strings.Contains(hostPort, ":") {
+						hostPort += ":53"
 					}
-					sdomain = strings.TrimSpace(sdomain)
-					sdomain = dns.Fqdn(sdomain)
-					stubmap[sdomain] = append(stubmap[sdomain], hostPort)
+
+					if err := validateHostPort(hostPort); err != nil {
+						log.Fatalf("This stubzones server address invalid: %s", err)
+					}
+
+					for _, sdomain := range strings.Split(segments[0], ",") {
+						if dns.CountLabel(sdomain) < 1 {
+							log.Fatalf("This stubzones domain is not a FQDN: %s", sdomain)
+						}
+						sdomain = strings.TrimSpace(sdomain)
+						sdomain = dns.Fqdn(sdomain)
+						stubmap[sdomain] = append(stubmap[sdomain], hostPort)
+					}
 				}
 			}
-
 			config.Stub = &stubmap
 		}
 
