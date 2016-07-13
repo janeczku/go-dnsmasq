@@ -245,7 +245,7 @@ func main() {
 			for _, stubzone := range stubzones {
 				segments := strings.Split(stubzone, "/")
 				if len(segments) != 2 || len(segments[0]) == 0 || len(segments[1]) == 0 {
-					log.Fatalf("The --stubzones argument is invalid")
+					log.Fatalf("Invalid value for --stubzones")
 				}
 
 				hosts := strings.Split(segments[1], ",")
@@ -258,12 +258,12 @@ func main() {
 					}
 
 					if err := validateHostPort(hostPort); err != nil {
-						log.Fatalf("This stubzones server address invalid: %s", err)
+						log.Fatalf("Stubzone server address is invalid: %s", err)
 					}
 
 					for _, sdomain := range strings.Split(segments[0], ",") {
 						if dns.CountLabel(sdomain) < 1 {
-							log.Fatalf("This stubzones domain is not a FQDN: %s", sdomain)
+							log.Fatalf("Stubzone domain is not a fully-qualified domain name: %s", sdomain)
 						}
 						sdomain = strings.TrimSpace(sdomain)
 						sdomain = dns.Fqdn(sdomain)
