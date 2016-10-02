@@ -55,9 +55,10 @@ func NewHostsfile(path string, config *Config) (*Hostsfile, error) {
 
 	log.Debugf("Found host:ip pairs in %s:", h.file.path)
 	for _, hostname := range *h.hosts {
-		log.Debugf("%s : %s",
+		log.Debugf("%s -> %s *=%t",
 			hostname.domain,
-			hostname.ip.String())
+			hostname.ip.String(),
+			hostname.wildcard)
 	}
 
 	return &h, nil
@@ -67,7 +68,7 @@ func (h *Hostsfile) FindHosts(name string) (addrs []net.IP, err error) {
 	name = strings.TrimSuffix(name, ".")
 	h.hostMutex.RLock()
 	defer h.hostMutex.RUnlock()
-	addrs = h.hosts.FindHosts(name);
+	addrs = h.hosts.FindHosts(name)
 	return
 }
 
