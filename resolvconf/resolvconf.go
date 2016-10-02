@@ -24,13 +24,12 @@ const RESOLVCONF_PATH = "/etc/resolv.conf"
 var resolvConfPattern = regexp.MustCompile("(?m:^.*" + regexp.QuoteMeta(RESOLVCONF_COMMENT_ADD) + ")(?:$|\n)")
 
 func StoreAddress(address string) error {
-	log.Info("Setting host nameserver to %s", address)
+	log.Infof("Setting host nameserver to %s", address)
 	resolveConfEntry := fmt.Sprintf("nameserver %s %s\n", address, RESOLVCONF_COMMENT_ADD)
 	return updateResolvConf(resolveConfEntry, RESOLVCONF_PATH)
 }
 
 func Clean() {
-	log.Info("Restoring /etc/resolv.conf")
 	updateResolvConf("", RESOLVCONF_PATH)
 }
 
@@ -60,17 +59,17 @@ func updateResolvConf(insert, path string) error {
 	for _, line := range lines {
 		switch insert {
 		case "":
-			// Uncomment lines we commented
+			// uncomment lines we commented
 			if strings.Contains(line, RESOLVCONF_COMMENT_OUT) {
 				line = strings.Replace(line, RESOLVCONF_COMMENT_OUT, "", -1)
 				line = strings.TrimLeft(line, " ")
 			}
 		default:
-			// Comment out active nameservers only
+			// comment out active nameservers only
 			if strings.HasPrefix(strings.ToLower(strings.TrimSpace(line)), "nameserver") {
 				line = fmt.Sprintf("%s %s", RESOLVCONF_COMMENT_OUT, line)
 			}
-		}			
+		}
 
 		if _, err = f.WriteString(line); err != nil {
 			return err

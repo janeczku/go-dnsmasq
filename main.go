@@ -252,6 +252,7 @@ func main() {
 			Verbose:         c.Bool("verbose"),
 		}
 
+		resolvconf.Clean()
 		if err := server.ResolvConf(config, c); err != nil {
 			if !os.IsNotExist(err) {
 				log.Warnf("Error parsing resolv.conf: %s", err.Error())
@@ -322,7 +323,11 @@ func main() {
 			if err != nil {
 				log.Warnf("Failed to register as default nameserver: %s", err)
 			}
-			defer resolvconf.Clean()
+
+			defer func() {
+				log.Info("Restoring /etc/resolv.conf")
+				resolvconf.Clean()
+			}()
 		}
 
 		go func() {
