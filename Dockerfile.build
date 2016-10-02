@@ -22,5 +22,3 @@ COPY scripts/upx /usr/local/bin/
 RUN chmod +x /usr/local/bin/upx
 
 WORKDIR /go/src/github.com/janeczku/go-dnsmasq
-
-#RUN go get -d ./...
