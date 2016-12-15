@@ -46,6 +46,8 @@ type Config struct {
 	RCache int `json:"rcache,omitempty"`
 	// RCacheTtl, how long to cache in seconds.
 	RCacheTtl int `json:"rcache_ttl,omitempty"`
+	// RCachePreserveUpstreamError
+	RCachePreserveUpstreamError bool `json:rcache_preserve_upstream_error,omitempty"`
 	// How many dots a name must have before we allow to forward the query as-is. Defaults to 1.
 	FwdNdots int `json:"fwd_ndots,omitempty"`
 	// How many dots a name must have before we do an initial absolute query. Defaults to 1.

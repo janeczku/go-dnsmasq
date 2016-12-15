@@ -115,6 +115,11 @@ func main() {
 			EnvVar: "DNSMASQ_RCACHE_TTL",
 		},
 		cli.BoolFlag{
+			Name:   "rcache-preserve-upstream-error",
+			Usage:  "Keep and use cache entries after the TTL expires if the upstream servers are down",
+			EnvVar: "DNSMASQ_RCACHE_PRESERVE_UPSTREAM_ERROR",
+		},
+		cli.BoolFlag{
 			Name:   "no-rec",
 			Usage:  "Disable recursion",
 			EnvVar: "DNSMASQ_NOREC",
@@ -234,22 +239,23 @@ func main() {
 		}
 
 		config := &server.Config{
-			DnsAddr:         listen,
-			DefaultResolver: c.Bool("default-resolver"),
-			Nameservers:     nameservers,
-			Systemd:         c.Bool("systemd"),
-			SearchDomains:   searchDomains,
-			EnableSearch:    enableSearch,
-			Hostsfile:       c.String("hostsfile"),
-			PollInterval:    c.Int("hostsfile-poll"),
-			RoundRobin:      c.Bool("round-robin"),
-			NoRec:           c.Bool("no-rec"),
-			FwdNdots:        c.Int("fwd-ndots"),
-			Ndots:           c.Int("ndots"),
-			ReadTimeout:     2 * time.Second,
-			RCache:          c.Int("rcache"),
-			RCacheTtl:       c.Int("rcache-ttl"),
-			Verbose:         c.Bool("verbose"),
+			DnsAddr:                     listen,
+			DefaultResolver:             c.Bool("default-resolver"),
+			Nameservers:                 nameservers,
+			Systemd:                     c.Bool("systemd"),
+			SearchDomains:               searchDomains,
+			EnableSearch:                enableSearch,
+			Hostsfile:                   c.String("hostsfile"),
+			PollInterval:                c.Int("hostsfile-poll"),
+			RoundRobin:                  c.Bool("round-robin"),
+			NoRec:                       c.Bool("no-rec"),
+			FwdNdots:                    c.Int("fwd-ndots"),
+			Ndots:                       c.Int("ndots"),
+			ReadTimeout:                 2 * time.Second,
+			RCache:                      c.Int("rcache"),
+			RCacheTtl:                   c.Int("rcache-ttl"),
+			RCachePreserveUpstreamError: c.Bool("rcache-preserve-upstream-error"),
+			Verbose:                     c.Bool("verbose"),
 		}
 
 		resolvconf.Clean()

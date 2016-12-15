@@ -143,6 +143,7 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	dnssec := false
 	tcp := false
 	local := true
+	var resp *dns.Msg = nil
 
 	q := req.Question[0]
 	name := strings.ToLower(q.Name)
@@ -180,27 +181,10 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	log.Debugf("[%d] Got query for '%s %s' from %s", req.Id, dns.TypeToString[q.Qtype], q.Name, w.RemoteAddr().String())
 
 	// Check cache first.
-	m1 := s.rcache.Hit(q, dnssec, tcp, m.Id)
-	if m1 != nil {
+	m1, m1_expired, m1_key := s.rcache.Hit(q, dnssec, tcp, m.Id)
+	if m1 != nil && !m1_expired {
 		log.Debugf("[%d] Found cached response for this query", req.Id)
-		if tcp {
-			if _, overflow := Fit(m1, dns.MaxMsgSize, tcp); overflow {
-				msgFail := new(dns.Msg)
-				s.ServerFailure(msgFail, req)
-				w.WriteMsg(msgFail)
-				return
-			}
-		} else {
-			// Overflow with udp always results in TC.
-			Fit(m1, int(bufsize), tcp)
-		}
-		if q.Qtype == dns.TypeA || q.Qtype == dns.TypeAAAA {
-			s.RoundRobin(m1.Answer)
-		}
-
-		if err := w.WriteMsg(m1); err != nil {
-			log.Errorf("Failed to return reply %q", err)
-		}
+		s.sendCachedResponse(w, req, q, tcp, bufsize, m1)
 		StatsCacheHit.Inc(1)
 		return
 	}
@@ -208,6 +192,12 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	StatsCacheMiss.Inc(1)
 
 	defer func() {
+		// remove the expired cache entry if we're not in keep-working-if-upstream-goes-down mode,
+		// or if we got an upstream response. We know m1 // is expired since this defered function is running
+		if m1 != nil && (!s.config.RCachePreserveUpstreamError || resp != nil) {
+			s.rcache.Remove(m1_key)
+		}
+
 		if local {
 			if m.Rcode == dns.RcodeServerFailure {
 				if err := w.WriteMsg(m); err != nil {
@@ -226,10 +216,16 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 			} else {
 				Fit(m, int(bufsize), tcp)
 			}
+
 			s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), m)
 
 			if err := w.WriteMsg(m); err != nil {
 				log.Errorf("Failed to return reply %q", err)
+			}
+		} else {
+			// cache the non-local response that we got
+			if resp != nil {
+				s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
 			}
 		}
 	}()
@@ -249,14 +245,8 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 
 	if q.Qtype == dns.TypePTR && strings.HasSuffix(name, ".in-addr.arpa.") || strings.HasSuffix(name, ".ip6.arpa.") {
 		local = false
-		resp := s.ServeDNSReverse(w, req)
-		if resp != nil {
-			s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
-		}
-		return
-	}
-
-	if q.Qclass == dns.ClassCHAOS {
+		resp = s.ServeDNSReverse(w, req)
+	} else if q.Qclass == dns.ClassCHAOS {
 		m.Authoritative = true
 		if q.Qtype == dns.TypeTXT {
 			switch name {
@@ -279,15 +269,24 @@ func (s *server) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		m.SetReply(req)
 		m.SetRcode(req, dns.RcodeServerFailure)
 		return
+	} else {
+		// Forward all other queries
+		local = false
+		resp = s.ServeDNSForward(w, req)
 	}
 
-	// Forward all other queries
-	local = false
-	resp := s.ServeDNSForward(w, req)
-	if resp != nil {
-		s.rcache.InsertMessage(cache.Key(q, dnssec, tcp), resp)
+	if !local && resp == nil {
+		// if we were unable to get a response (due to the upstream dns servers being down, etc.) fail back to the
+		// cached result we got in the beginning
+		if m1 != nil && s.config.RCachePreserveUpstreamError {
+			log.Debugf("[%d] Error forwarding query, falling back to last cached value.", req.Id)
+			s.sendCachedResponse(w, req, q, tcp, bufsize, m1)
+		} else {
+			log.Debugf("[%d] Error forwarding query. Returning SRVFAIL.", req.Id)
+			m.SetRcode(req, dns.RcodeServerFailure)
+			w.WriteMsg(m)
+		}
 	}
-
 }
 
 func (s *server) AddressRecords(q dns.Question, name string) (records []dns.RR, err error) {
@@ -366,7 +365,27 @@ func (s *server) RoundRobin(rrs []dns.RR) {
 			rrs[q], rrs[p] = rrs[p], rrs[q]
 		}
 	}
+}
 
+func (s *server) sendCachedResponse(w dns.ResponseWriter, req *dns.Msg, q dns.Question, tcp bool, bufsize uint16, m1 *dns.Msg) {
+	if tcp {
+		if _, overflow := Fit(m1, dns.MaxMsgSize, tcp); overflow {
+			msgFail := new(dns.Msg)
+			s.ServerFailure(msgFail, req)
+			w.WriteMsg(msgFail)
+			return
+		}
+	} else {
+		// Overflow with udp always results in TC.
+		Fit(m1, int(bufsize), tcp)
+	}
+	if q.Qtype == dns.TypeA || q.Qtype == dns.TypeAAAA {
+		s.RoundRobin(m1.Answer)
+	}
+
+	if err := w.WriteMsg(m1); err != nil {
+		log.Errorf("Failed to return reply %q", err)
+	}
 }
 
 // isTCP returns true if the client is connecting over TCP.
