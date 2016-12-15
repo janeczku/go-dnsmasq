@@ -36,7 +36,7 @@ func TestInsertMessage(t *testing.T) {
 	for _, tc := range testcases {
 		c.InsertMessage(Key(tc.m.Question[0], tc.dnssec, tc.tcp), tc.m)
 
-		m1 := c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id)
+		m1, expired, key := c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id)
 		if m1.Question[0].Qtype != tc.m.Question[0].Qtype {
 			t.Fatalf("bad Qtype, expected %d, got %d:", tc.m.Question[0].Qtype, m1.Question[0].Qtype)
 		}
@@ -44,15 +44,15 @@ func TestInsertMessage(t *testing.T) {
 			t.Fatalf("bad Qtype, expected %s, got %s:", tc.m.Question[0].Name, m1.Question[0].Name)
 		}
 
-		m1 = c.Hit(tc.m.Question[0], !tc.dnssec, tc.tcp, tc.m.Id)
+		m1, expired, key = c.Hit(tc.m.Question[0], !tc.dnssec, tc.tcp, tc.m.Id)
 		if m1 != nil {
 			t.Fatalf("bad cache hit, expected <nil>, got %s:", m1)
 		}
-		m1 = c.Hit(tc.m.Question[0], !tc.dnssec, !tc.tcp, tc.m.Id)
+		m1, expired, key = c.Hit(tc.m.Question[0], !tc.dnssec, !tc.tcp, tc.m.Id)
 		if m1 != nil {
 			t.Fatalf("bad cache hit, expected <nil>, got %s:", m1)
 		}
-		m1 = c.Hit(tc.m.Question[0], tc.dnssec, !tc.tcp, tc.m.Id)
+		m1, expired, key = c.Hit(tc.m.Question[0], tc.dnssec, !tc.tcp, tc.m.Id)
 		if m1 != nil {
 			t.Fatalf("bad cache hit, expected <nil>, got %s:", m1)
 		}
@@ -65,7 +65,7 @@ func TestExpireMessage(t *testing.T) {
 	tc := testcase{newMsg("miek.nl.", dns.TypeMX), false, false}
 	c.InsertMessage(Key(tc.m.Question[0], tc.dnssec, tc.tcp), tc.m)
 
-	m1 := c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id)
+	m1, expired, key := c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id)
 	if m1.Question[0].Qtype != tc.m.Question[0].Qtype {
 		t.Fatalf("bad Qtype, expected %d, got %d:", tc.m.Question[0].Qtype, m1.Question[0].Qtype)
 	}
@@ -75,7 +75,7 @@ func TestExpireMessage(t *testing.T) {
 
 	time.Sleep(testTTL)
 
-	m1 = c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id)
+	m1, expired, key = c.Hit(tc.m.Question[0], tc.dnssec, tc.tcp, tc.m.Id)
 	if m1.Question[0].Qtype != tc.m.Question[0].Qtype {
 		t.Fatalf("bad Qtype, expected %d, got %d:", tc.m.Question[0].Qtype, m1.Question[0].Qtype)
 	}

@@ -139,12 +139,8 @@ func (s *server) ServeDNSForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
 	}
 
 	// If we got here, we either failed to forward the query or the qname was too
-	// short to forward.
-	log.Debugf("[%d] Error forwarding query. Returning SRVFAIL.", req.Id)
-	m := new(dns.Msg)
-	m.SetRcode(req, dns.RcodeServerFailure)
-	writeMsg(w, m)
-	return m
+	// short to forward. The caller needs to handle returning back an error
+	return nil;
 }
 
 // forwardSearch resolves a query by suffixing with search paths
@@ -173,7 +169,7 @@ func (s *server) forwardSearch(req *dns.Msg, tcp bool) (*dns.Msg, error) {
 
 		switch r.Rcode {
 		case dns.RcodeSuccess:
-			// In case of NO_DATA keep searching, otherwise a wildcard entry 
+			// In case of NO_DATA keep searching, otherwise a wildcard entry
 			// could keep us from finding the answer higher in the search list
 			if len(r.Answer) == 0 && !r.MsgHdr.Truncated {
 				nodata = r.Copy()
