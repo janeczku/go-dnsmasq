@@ -171,7 +171,7 @@ func parseLine(line string) hostlist {
 	var isWildcard bool
 	for _, v := range domains {
 		isWildcard = false
-		if v[0:2] == "*." {
+		if len(v) > 1 && v[0:2] == "*." {
 			v = v[2:]
 			isWildcard = true
 		}
