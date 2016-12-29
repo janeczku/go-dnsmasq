@@ -115,12 +115,13 @@ func TestParseLine(t *testing.T) {
 	}
 
 	// Not Commented stuff
-	hosts = parseLine("192.168.0.1 broadcasthost test.domain.com	domain.com")
+	hosts = parseLine("192.168.0.1 broadcasthost test.domain.com	domain.com d")
 	if !hosts.Contains(newHostname("broadcasthost", net.ParseIP("192.168.0.1"), false, false)) ||
 		!hosts.Contains(newHostname("test.domain.com", net.ParseIP("192.168.0.1"), false, false)) ||
 		!hosts.Contains(newHostname("domain.com", net.ParseIP("192.168.0.1"), false, false)) ||
-		len(hosts) != 3 {
-		t.Error("Expected to find broadcasthost, domain.com, and test.domain.com")
+		!hosts.Contains(newHostname("d", net.ParseIP("192.168.0.1"), false, false)) ||
+		len(hosts) != 4 {
+		t.Error("Expected to find broadcasthost, domain.com, test.domain.com and d")
 	}
 
 	// Wildcard stuff
