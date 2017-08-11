@@ -10,7 +10,7 @@ RUN \
   go get github.com/miekg/dns && \
   go get github.com/rcrowley/go-metrics && \
   go get github.com/rcrowley/go-metrics/stathat && \
-  go get github.com/Sirupsen/logrus && \
+  go get github.com/sirupsen/logrus && \
   go get github.com/stathat/go
 
 ENV USER root
