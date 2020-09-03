@@ -16,9 +16,9 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-	logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
-	"github.com/codegangsta/cli"
+	log "github.com/sirupsen/logrus"
+	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
+	"github.com/urfave/cli"
 	"github.com/miekg/dns"
 
 	"github.com/janeczku/go-dnsmasq/hostsfile"

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/codegangsta/cli"
+	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 	"github.com/miekg/dns"
 )
 
