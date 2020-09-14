@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -99,6 +100,9 @@ func (h *Hostsfiles) monitorHostFiles(poll int) {
 		files, err := ioutil.ReadDir(h.directory)
 		if err != nil {
 			log.Error(err)
+			if os.IsNotExist(err) {
+				return
+			}
 			continue
 		}
 		updateHostList := &hostlist{}
