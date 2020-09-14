@@ -79,6 +79,12 @@ func main() {
 			Usage:  "Path to a hosts `file` (e.g. /etc/hosts)",
 			EnvVar: "DNSMASQ_HOSTSFILE",
 		},
+		cli.StringFlag{
+			Name:   "hostsfiles, fs",
+			Value:  "",
+			Usage:  "Path to the `directory` of hosts file (e.g. /etc/host)",
+			EnvVar: "DNSMASQ_DIRECTORY_HOSTSFILES",
+		},
 		cli.IntFlag{
 			Name:   "hostsfile-poll, p",
 			Value:  0,
@@ -234,22 +240,23 @@ func main() {
 		}
 
 		config := &server.Config{
-			DnsAddr:         listen,
-			DefaultResolver: c.Bool("default-resolver"),
-			Nameservers:     nameservers,
-			Systemd:         c.Bool("systemd"),
-			SearchDomains:   searchDomains,
-			EnableSearch:    enableSearch,
-			Hostsfile:       c.String("hostsfile"),
-			PollInterval:    c.Int("hostsfile-poll"),
-			RoundRobin:      c.Bool("round-robin"),
-			NoRec:           c.Bool("no-rec"),
-			FwdNdots:        c.Int("fwd-ndots"),
-			Ndots:           c.Int("ndots"),
-			ReadTimeout:     2 * time.Second,
-			RCache:          c.Int("rcache"),
-			RCacheTtl:       c.Int("rcache-ttl"),
-			Verbose:         c.Bool("verbose"),
+			DnsAddr:             listen,
+			DefaultResolver:     c.Bool("default-resolver"),
+			Nameservers:         nameservers,
+			Systemd:             c.Bool("systemd"),
+			SearchDomains:       searchDomains,
+			EnableSearch:        enableSearch,
+			Hostsfile:           c.String("hostsfile"),
+			DirectoryHostsfiles: c.String("hostsfiles"),
+			PollInterval:        c.Int("hostsfile-poll"),
+			RoundRobin:          c.Bool("round-robin"),
+			NoRec:               c.Bool("no-rec"),
+			FwdNdots:            c.Int("fwd-ndots"),
+			Ndots:               c.Int("ndots"),
+			ReadTimeout:         2 * time.Second,
+			RCache:              c.Int("rcache"),
+			RCacheTtl:           c.Int("rcache-ttl"),
+			Verbose:             c.Bool("verbose"),
 		}
 
 		resolvconf.Clean()
@@ -302,11 +309,18 @@ func main() {
 		if config.EnableSearch {
 			log.Infof("Search domains: %v", config.SearchDomains)
 		}
-
-		hf, err := hosts.NewHostsfile(config.Hostsfile, &hosts.Config{
+		var hf server.Hostfile
+		var err error
+		hostfileConfig := &hosts.Config{
 			Poll:    config.PollInterval,
 			Verbose: config.Verbose,
-		})
+		}
+		if config.DirectoryHostsfiles != "" {
+			hf, err = hosts.NewHostsfiles(config.DirectoryHostsfiles, hostfileConfig)
+		} else {
+			hf, err = hosts.NewHostsfile(config.Hostsfile, hostfileConfig)
+		}
+
 		if err != nil {
 			log.Fatalf("Error loading hostsfile: %s", err)
 		}
