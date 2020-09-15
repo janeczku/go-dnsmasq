@@ -33,15 +33,26 @@ func NewHostsfiles(directory string, config *Config) (*Hostsfiles, error) {
 	}
 	h := &Hostsfiles{config: config, files: make(map[string]*fileInfo), directory: directory}
 
-	files, err := ioutil.ReadDir(h.directory)
+	err := h.reloadAll()
 	if err != nil {
 		return nil, err
+	}
+	if h.config.Poll > 0 {
+		go h.monitorHostFiles(h.config.Poll)
+	}
+	return h, nil
+}
+
+func (h *Hostsfiles) reloadAll() error {
+	files, err := ioutil.ReadDir(h.directory)
+	if err != nil {
+		return err
 	}
 	updateHostList := &hostlist{}
 	for _, file := range files {
 		var hosts *hostlist
 		if hosts, err = loadHostEntries(h.directory + "/" + file.Name()); err != nil {
-			return nil, err
+			return err
 		}
 		//Update main hostlist
 		if hosts != nil {
@@ -52,10 +63,7 @@ func NewHostsfiles(directory string, config *Config) (*Hostsfiles, error) {
 		h.files[file.Name()] = &fileInfo{size: file.Size(), mtime: file.ModTime()}
 	}
 	h.hosts = updateHostList
-	if h.config.Poll > 0 {
-		go h.monitorHostFiles(h.config.Poll)
-	}
-	return h, nil
+	return nil
 }
 
 func (h *Hostsfiles) FindHosts(name string) (addrs []net.IP, err error) {
@@ -93,10 +101,14 @@ func (h *Hostsfiles) monitorHostFiles(poll int) {
 	}
 
 	t := time.Duration(poll) * time.Second
-
+	reloadAllIndex := uint(0)
 	for _ = range time.Tick(t) {
-		//log.Printf("go-dnsmasq: checking %q for updates…", hf.path)
-
+		reloadAllIndex++
+		if reloadAllIndex > 100 {
+			h.reloadAll()
+			reloadAllIndex = 0
+			continue
+		}
 		files, err := ioutil.ReadDir(h.directory)
 		if err != nil {
 			log.Error(err)
@@ -134,7 +146,9 @@ func (h *Hostsfiles) monitorHostFiles(poll int) {
 		}
 		log.Debug("Reloaded updated hostsfile")
 		h.hostMutex.Lock()
-		h.hosts = updateHostList
+		for idx := range *updateHostList {
+			h.hosts.add((*updateHostList)[idx])
+		}
 		h.hostMutex.Unlock()
 	}
 }
