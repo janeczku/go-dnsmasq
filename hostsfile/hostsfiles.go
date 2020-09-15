@@ -101,14 +101,7 @@ func (h *Hostsfiles) monitorHostFiles(poll int) {
 	}
 
 	t := time.Duration(poll) * time.Second
-	reloadAllIndex := uint(0)
 	for _ = range time.Tick(t) {
-		reloadAllIndex++
-		if reloadAllIndex > 100 {
-			h.reloadAll()
-			reloadAllIndex = 0
-			continue
-		}
 		files, err := ioutil.ReadDir(h.directory)
 		if err != nil {
 			log.Error(err)
