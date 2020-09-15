@@ -117,7 +117,6 @@ func (h *Hostsfiles) monitorHostFiles(poll int) {
 			}
 			continue
 		}
-		updateHostList := &hostlist{}
 		for _, file := range files {
 			size, mtime := file.Size(), file.ModTime()
 			log.Debug("checking on:", file.Name())
@@ -126,29 +125,12 @@ func (h *Hostsfiles) monitorHostFiles(poll int) {
 					continue // no updates
 				}
 			}
-			log.Debug("file change, " + file.Name())
-			var hosts *hostlist
-			if hosts, err = loadHostEntries(h.directory + "/" + file.Name()); err != nil {
-				log.Warnf("Error parsing hostsfile: %s", err)
-				h.files[file.Name()] = &fileInfo{size: size, mtime: mtime}
-				continue
-			}
-			//Update main hostlist
-			if hosts != nil {
-				for _, host := range *hosts {
-					updateHostList.add(host)
-				}
-			}
-			h.files[file.Name()] = &fileInfo{size: size, mtime: mtime}
+			//If any of the file change, reload them all
+			log.Debug("Reloaded updated hostsfile")
+			h.hostMutex.Lock()
+			h.reloadAll()
+			h.hostMutex.Unlock()
+			break
 		}
-		if len(*updateHostList) == 0 {
-			continue
-		}
-		log.Debug("Reloaded updated hostsfile")
-		h.hostMutex.Lock()
-		for idx := range *updateHostList {
-			h.hosts.add((*updateHostList)[idx])
-		}
-		h.hostMutex.Unlock()
 	}
 }
