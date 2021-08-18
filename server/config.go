@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/codegangsta/cli"
+	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 	"github.com/miekg/dns"
 )
 
@@ -29,6 +29,8 @@ type Config struct {
 	EnableSearch bool `json:"append_domain,omitempty"`
 	// Path to the hostfile
 	Hostsfile string `json:"hostfile,omitempty"`
+	// Path to the directory of hostfiles
+	DirectoryHostsfiles string `json:"directory_hostsfiles,omitempty"`
 	// Hostfile Polling
 	PollInterval int `json:"poll_interval,omitempty"`
 	// Round robin A/AAAA replies. Default is true.
