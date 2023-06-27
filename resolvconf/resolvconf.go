@@ -14,7 +14,7 @@ import (
 	"regexp"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 const RESOLVCONF_COMMENT_ADD = "# added by go-dnsmasq"

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/codegangsta/cli"
 	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
+	cli "github.com/urfave/cli"
 )
 
 // Config provides options to the go-dnsmasq resolver

@@ -16,15 +16,15 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-	logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
-	"github.com/codegangsta/cli"
 	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
+	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
+	cli "github.com/urfave/cli"
 
-	"github.com/janeczku/go-dnsmasq/hostsfile"
-	"github.com/janeczku/go-dnsmasq/resolvconf"
-	"github.com/janeczku/go-dnsmasq/server"
-	"github.com/janeczku/go-dnsmasq/stats"
+	hosts "github.com/raj-raskar/go-dnsmasq/hostsfile"
+	"github.com/raj-raskar/go-dnsmasq/resolvconf"
+	"github.com/raj-raskar/go-dnsmasq/server"
+	"github.com/raj-raskar/go-dnsmasq/stats"
 )
 
 // set at build time
