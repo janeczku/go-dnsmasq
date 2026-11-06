@@ -1,0 +1,9 @@
+FROM docker.m.daocloud.io/library/alpine:3.19
+MAINTAINER Jan Broer <janeczku@yahoo.com>
+
+COPY go-dnsmasq_linux-arm64 /go-dnsmasq
+RUN chmod +x /go-dnsmasq
+
+ENV DNSMASQ_LISTEN=0.0.0.0
+EXPOSE 53 53/udp
+ENTRYPOINT ["/go-dnsmasq"]

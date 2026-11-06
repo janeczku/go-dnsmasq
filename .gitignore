@@ -1,0 +1,3 @@
+# Build outputs from scripts/build, scripts/build-min and arm64 builds
+go-dnsmasq_*
+go-dnsmasq-min_*
